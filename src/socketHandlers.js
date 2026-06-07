@@ -1,17 +1,37 @@
 // Wires up all realtime events between the TV host screen and phone controllers.
+import QRCode from 'qrcode';
+
+function buildJoinUrl(socket, code) {
+  // Prefer the configured public URL (production); fall back to the request
+  // origin (works for local dev and when origin header is present).
+  const base =
+    (process.env.PUBLIC_URL || '').replace(/\/$/, '') ||
+    socket.handshake.headers.origin ||
+    `http://localhost:${process.env.PORT || 3000}`;
+  return `${base}/play?code=${code}`;
+}
 
 export function registerSocketHandlers(io, rooms) {
   io.on('connection', (socket) => {
     // -----------------------------------------------------------------------
     // HOST (TV) creates a room
     // -----------------------------------------------------------------------
-    socket.on('host:create', () => {
+    socket.on('host:create', async () => {
       const passportUser = socket.request.session?.passport?.user ?? null;
       const room = rooms.createRoom(socket.id, passportUser);
       socket.join(room.code);
       socket.data.roomCode = room.code;
       socket.data.role = 'host';
-      socket.emit('host:created', rooms.publicState(room));
+
+      const joinUrl = buildJoinUrl(socket, room.code);
+      let qr = null;
+      try {
+        qr = await QRCode.toDataURL(joinUrl, { margin: 1, width: 320 });
+      } catch {
+        qr = null; // QR is a nice-to-have; the room code still works.
+      }
+
+      socket.emit('host:created', { ...rooms.publicState(room), joinUrl, qr });
     });
 
     // -----------------------------------------------------------------------

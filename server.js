@@ -98,7 +98,10 @@ if (googleConfigured) {
 // ---------------------------------------------------------------------------
 function ensureAuth(req, res, next) {
   if (req.isAuthenticated?.()) return next();
-  res.redirect('/');
+  // Remember where the user was headed (e.g. /play?code=ABCD from a QR scan)
+  // so we can send them back there right after they log in.
+  req.session.returnTo = req.originalUrl;
+  res.redirect('/auth/google');
 }
 
 app.get('/auth/google', (req, res, next) => {
@@ -113,7 +116,11 @@ app.get('/auth/google', (req, res, next) => {
 app.get(
   '/auth/google/callback',
   passport.authenticate('google', { failureRedirect: '/' }),
-  (req, res) => res.redirect('/home')
+  (req, res) => {
+    const dest = req.session.returnTo || '/home';
+    delete req.session.returnTo;
+    res.redirect(dest);
+  }
 );
 
 app.post('/logout', (req, res, next) => {
@@ -148,8 +155,8 @@ app.get('/home', ensureAuth, (req, res) =>
 app.get('/host', ensureAuth, (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'host.html'))
 );
-// The phone controller view. No login required — players just enter a room code.
-app.get('/play', (req, res) =>
+// The phone controller view. Login is required for all participants.
+app.get('/play', ensureAuth, (req, res) =>
   res.sendFile(path.join(__dirname, 'public', 'controller.html'))
 );
 

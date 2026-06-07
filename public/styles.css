@@ -130,6 +130,27 @@ input::placeholder { color: var(--muted); }
   color: var(--gold);
   margin: 0.2em 0;
 }
+
+.join-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 32px;
+  align-items: center;
+  justify-content: center;
+  margin: 16px 0;
+}
+.qr-box {
+  background: #fff;
+  padding: 14px 14px 6px;
+  border-radius: 16px;
+}
+.qr-box img {
+  display: block;
+  width: clamp(160px, 22vw, 260px);
+  height: auto;
+}
+.qr-box .muted { color: #555; margin: 6px 0 0; }
+.code-box { min-width: 220px; }
 .players-grid {
   display: flex;
   flex-wrap: wrap;

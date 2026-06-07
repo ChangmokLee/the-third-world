@@ -10,9 +10,19 @@
     <!-- LOBBY -->
     <section id="lobby">
       <h1 class="brand">The Third World</h1>
-      <p class="subtitle">휴대폰으로 아래 코드를 입력해 참여하세요</p>
-      <p class="muted">phone → 사이트 접속 후 "방 코드로 참여하기"</p>
-      <div id="roomCode" class="room-code">····</div>
+      <p class="subtitle">휴대폰으로 QR을 스캔하거나 방 코드를 입력해 참여하세요</p>
+
+      <div class="join-row">
+        <div class="qr-box">
+          <img id="qrImg" alt="참여 QR 코드" />
+          <p class="muted">폰 카메라로 스캔</p>
+        </div>
+        <div class="code-box">
+          <p class="muted">또는 방 코드 입력</p>
+          <div id="roomCode" class="room-code">····</div>
+          <p id="joinUrl" class="muted" style="word-break: break-all"></p>
+        </div>
+      </div>
 
       <div id="players" class="players-grid"></div>
 
@@ -47,6 +57,8 @@
 
       socket.on('host:created', (state) => {
         $('roomCode').textContent = state.code;
+        if (state.qr) $('qrImg').src = state.qr;
+        if (state.joinUrl) $('joinUrl').textContent = state.joinUrl;
         renderPlayers(state.players);
       });
 

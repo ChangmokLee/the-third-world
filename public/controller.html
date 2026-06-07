@@ -60,6 +60,16 @@
       const params = new URLSearchParams(location.search);
       if (params.get('code')) $('codeInput').value = params.get('code').toUpperCase();
 
+      // The player is logged in (route is protected); prefill their Google name.
+      fetch('/api/me')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.user?.name && !$('nameInput').value) {
+            $('nameInput').value = data.user.name.slice(0, 16);
+          }
+        })
+        .catch(() => {});
+
       $('codeInput').addEventListener('input', (e) => {
         e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
       });
