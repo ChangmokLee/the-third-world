@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>홈 · The Third World</title>
+    <title>Home · The Third World</title>
     <link rel="icon" href="/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@400;500;700;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -14,13 +17,13 @@
     </div>
 
     <img class="logo" src="/logo.png" alt="The Third World" />
-    <p class="subtitle">무엇을 할까요?</p>
+    <p class="subtitle">What would you like to do?</p>
 
     <div class="panel">
-      <a class="btn" href="/host">📺 TV로 새 게임 시작 (호스트)</a>
-      <a class="btn secondary" href="/play">📱 방 코드로 참여하기</a>
+      <a class="btn" href="/host">📺 Start a new game on TV (Host)</a>
+      <a class="btn secondary" href="/play">📱 Join with a room code</a>
       <form action="/logout" method="post" style="margin-top: 16px">
-        <button class="btn secondary" type="submit">로그아웃</button>
+        <button class="btn secondary" type="submit">Log out</button>
       </form>
     </div>
 
@@ -33,7 +36,7 @@
             return;
           }
           const chip = document.getElementById('userChip');
-          document.getElementById('userName').textContent = data.user.name || '플레이어';
+          document.getElementById('userName').textContent = data.user.name || 'Player';
           if (data.user.photo) document.getElementById('userPhoto').src = data.user.photo;
           chip.classList.remove('hidden');
         });

@@ -1,10 +1,13 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-    <title>참여하기 · The Third World</title>
+    <title>Join · The Third World</title>
     <link rel="icon" href="/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@400;500;700;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
@@ -12,30 +15,30 @@
     <section id="join">
       <img class="logo sm" src="/logo.png" alt="The Third World" />
       <div class="panel">
-        <p class="muted">TV 화면의 4자리 방 코드를 입력하세요</p>
+        <p class="muted">Enter the 4-letter room code shown on the TV</p>
         <input id="codeInput" class="code-input" type="text" maxlength="4"
                placeholder="ABCD" autocapitalize="characters" autocomplete="off" />
-        <input id="nameInput" type="text" maxlength="16" placeholder="닉네임" autocomplete="off" />
-        <button id="joinBtn" class="btn">입장</button>
+        <input id="nameInput" type="text" maxlength="16" placeholder="Nickname" autocomplete="off" />
+        <button id="joinBtn" class="btn">Join</button>
         <p id="joinError" class="error"></p>
       </div>
     </section>
 
     <!-- WAITING -->
     <section id="waiting" class="hidden">
-      <h2 class="brand" style="font-size: 2rem">입장 완료!</h2>
-      <p class="subtitle">방 <b id="roomLabel"></b> · <span id="meLabel"></span></p>
-      <p class="muted">호스트가 게임을 시작할 때까지 기다려 주세요…</p>
+      <h2 class="brand" style="font-size: 2rem">You're in!</h2>
+      <p class="subtitle">Room <b id="roomLabel"></b> · <span id="meLabel"></span></p>
+      <p class="muted">Waiting for the host to start the game…</p>
     </section>
 
     <!-- CHOICE -->
     <section id="choosing" class="hidden">
-      <h2 class="brand" style="font-size: 1.8rem">선택의 순간</h2>
+      <h2 class="brand" style="font-size: 1.8rem">Decision Time</h2>
       <div class="panel">
-        <p>어느 길로 갈까?</p>
+        <p>Which path will you take?</p>
         <div class="choices">
-          <button class="choice-btn" data-choice="left">⬅ 왼쪽 길</button>
-          <button class="choice-btn" data-choice="right">오른쪽 길 ➡</button>
+          <button class="choice-btn" data-choice="left">⬅ Left path</button>
+          <button class="choice-btn" data-choice="right">Right path ➡</button>
         </div>
         <p id="choiceMsg" class="muted" style="margin-top: 16px"></p>
       </div>
@@ -43,8 +46,8 @@
 
     <!-- DONE -->
     <section id="done" class="hidden">
-      <h2 class="brand">선택 완료</h2>
-      <p class="subtitle">TV 화면을 확인하세요!</p>
+      <h2 class="brand">Choice locked in</h2>
+      <p class="subtitle">Check the TV screen!</p>
     </section>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -52,9 +55,9 @@
       const socket = io();
       const $ = (id) => document.getElementById(id);
       const ERRORS = {
-        ROOM_NOT_FOUND: '방을 찾을 수 없어요. 코드를 확인하세요.',
-        ROOM_FULL: '방이 가득 찼어요.',
-        NAME_REQUIRED: '닉네임을 입력하세요.',
+        ROOM_NOT_FOUND: 'Room not found. Check the code.',
+        ROOM_FULL: 'The room is full.',
+        NAME_REQUIRED: 'Please enter a nickname.',
       };
 
       // Prefill code from ?code= if present (for QR links later).
@@ -80,14 +83,14 @@
         const name = $('nameInput').value.trim();
         $('joinError').textContent = '';
         if (!code || !name) {
-          $('joinError').textContent = '방 코드와 닉네임을 모두 입력하세요.';
+          $('joinError').textContent = 'Please enter both the room code and a nickname.';
           return;
         }
         socket.emit('player:join', { code, name });
       });
 
       socket.on('player:error', ({ code }) => {
-        $('joinError').textContent = ERRORS[code] || '입장에 실패했어요.';
+        $('joinError').textContent = ERRORS[code] || 'Failed to join.';
       });
 
       socket.on('player:joined', ({ code, name }) => {
@@ -106,7 +109,7 @@
       });
 
       socket.on('room:closed', () => {
-        alert('호스트가 방을 닫았습니다.');
+        alert('The host has closed the room.');
         location.href = '/';
       });
 
@@ -115,7 +118,7 @@
           document.querySelectorAll('.choice-btn').forEach((b) => b.classList.remove('selected'));
           btn.classList.add('selected');
           socket.emit('player:choice', { choice: btn.dataset.choice });
-          $('choiceMsg').textContent = '선택을 전송했어요! 변경하려면 다시 누르세요.';
+          $('choiceMsg').textContent = 'Choice sent! Tap again to change it.';
         });
       });
 

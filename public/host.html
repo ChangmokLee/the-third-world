@@ -1,25 +1,28 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>호스트 (TV) · The Third World</title>
+    <title>Host (TV) · The Third World</title>
     <link rel="icon" href="/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Grenze+Gotisch:wght@400;500;700;900&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="/styles.css" />
   </head>
   <body>
     <!-- LOBBY -->
     <section id="lobby">
       <img class="logo lg" src="/logo.png" alt="The Third World" />
-      <p class="subtitle">휴대폰으로 QR을 스캔하거나 방 코드를 입력해 참여하세요</p>
+      <p class="subtitle">Scan the QR code or enter the room code on your phone to join</p>
 
       <div class="join-row">
         <div class="qr-box">
-          <img id="qrImg" alt="참여 QR 코드" />
-          <p class="muted">폰 카메라로 스캔</p>
+          <img id="qrImg" alt="Join QR code" />
+          <p class="muted">Scan with your phone camera</p>
         </div>
         <div class="code-box">
-          <p class="muted">또는 방 코드 입력</p>
+          <p class="muted">Or enter the room code</p>
           <div id="roomCode" class="room-code">····</div>
           <p id="joinUrl" class="muted" style="word-break: break-all"></p>
         </div>
@@ -28,24 +31,24 @@
       <div id="players" class="players-grid"></div>
 
       <button id="startBtn" class="btn" style="max-width: 360px; margin-top: 28px" disabled>
-        게임 시작 (최소 1명)
+        Start game (need 1+ players)
       </button>
     </section>
 
     <!-- PLAYING -->
     <section id="playing" class="hidden">
-      <h2 class="brand" style="font-size: clamp(1.6rem, 5vw, 3rem)">갈림길</h2>
-      <p class="subtitle">어둠 속 두 갈래 길이 나타났다. 어느 쪽으로?</p>
+      <h2 class="brand" style="font-size: clamp(1.6rem, 5vw, 3rem)">The Fork</h2>
+      <p class="subtitle">Two paths emerge from the darkness. Which way?</p>
       <div class="players-grid" id="voteStatus"></div>
-      <p class="muted" style="margin-top: 24px">휴대폰에서 선택해 주세요…</p>
+      <p class="muted" style="margin-top: 24px">Make your choice on your phone…</p>
     </section>
 
     <!-- RESULTS -->
     <section id="results" class="hidden">
-      <h2 class="brand">결과</h2>
+      <h2 class="brand">Results</h2>
       <div id="resultsBody"></div>
       <button id="againBtn" class="btn" style="max-width: 360px; margin-top: 24px">
-        다음 라운드
+        Next round
       </button>
     </section>
 
@@ -71,13 +74,13 @@
       socket.on('game:phase', ({ phase }) => showPhase(phase));
 
       socket.on('game:results', ({ tally }) => {
-        const labels = { left: '왼쪽 길', right: '오른쪽 길' };
+        const labels = { left: 'Left path', right: 'Right path' };
         const body = $('resultsBody');
         body.innerHTML = '';
         Object.entries(tally).forEach(([choice, count]) => {
           const row = document.createElement('p');
           row.style.fontSize = '1.4rem';
-          row.textContent = `${labels[choice] || choice}: ${count}표`;
+          row.textContent = `${labels[choice] || choice}: ${count} votes`;
           body.appendChild(row);
         });
         showPhase('results');
@@ -99,7 +102,7 @@
         });
         const btn = $('startBtn');
         btn.disabled = players.length === 0;
-        btn.textContent = players.length === 0 ? '게임 시작 (최소 1명)' : '게임 시작';
+        btn.textContent = players.length === 0 ? 'Start game (need 1+ players)' : 'Start game';
       }
 
       function renderVoteStatus(players) {
