@@ -45,6 +45,17 @@ h1, h2, h3 { margin: 0 0 0.4em; line-height: 1.1; }
   color: transparent;
 }
 
+/* Logo image (black-on-transparent PNG → inverted to white for the dark theme) */
+.logo {
+  display: block;
+  width: clamp(240px, 60vw, 520px);
+  height: auto;
+  margin: 0 auto 0.6em;
+  filter: invert(1) drop-shadow(0 4px 14px rgba(0, 0, 0, 0.4));
+}
+.logo.sm { width: clamp(180px, 40vw, 320px); }
+.logo.lg { width: clamp(300px, 70vw, 760px); }
+
 .subtitle { color: var(--muted); margin-bottom: 1.5rem; }
 
 .panel {
