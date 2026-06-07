@@ -33,6 +33,29 @@ body {
   text-align: center;
 }
 
+/* Sign-in page: blurred, darkened dungeon background behind the content. */
+body.signin-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: url('/bg.png') center / cover no-repeat;
+  filter: blur(6px) brightness(0.4) saturate(0.9);
+  transform: scale(1.08); /* hide blurred edges */
+}
+/* Extra dark veil + subtle theme tint for readability. */
+body.signin-bg::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    circle at 50% 30%,
+    rgba(14, 11, 26, 0.55),
+    rgba(14, 11, 26, 0.82) 80%
+  );
+}
+
 h1, h2, h3 { margin: 0 0 0.4em; line-height: 1.1; }
 
 .brand {
