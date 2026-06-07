@@ -1,1 +1,0 @@
-[auth] GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET not set. Google login is disabled until you configure .env (see README).
