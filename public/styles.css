@@ -123,8 +123,12 @@ h1, h2, h3 { margin: 0 0 0.4em; line-height: 1.1; }
 /* Sign-in box uses the custom artwork as its background. */
 .panel.signin-panel {
   position: relative;
+  max-width: 560px;
+  padding: 48px 40px;
   background: url('/signinbox.png') center / cover no-repeat, #14101f;
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: none;
+  border-radius: 18px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.6);
   overflow: hidden;
 }
 /* Dark overlay so the text/buttons stay readable on the artwork. */
