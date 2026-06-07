@@ -120,6 +120,26 @@ h1, h2, h3 { margin: 0 0 0.4em; line-height: 1.1; }
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
 }
 
+/* Sign-in box uses the custom artwork as its background. */
+.panel.signin-panel {
+  position: relative;
+  background: url('/signinbox.png') center / cover no-repeat, #14101f;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+}
+/* Dark overlay so the text/buttons stay readable on the artwork. */
+.panel.signin-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(10, 8, 18, 0.45);
+  z-index: 0;
+}
+.panel.signin-panel > * {
+  position: relative;
+  z-index: 1;
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
