@@ -59,6 +59,32 @@ body.signin-bg::after {
 /* Lift the actual content above the background layers. */
 body.signin-bg > * { position: relative; z-index: 1; }
 
+/* Post-login pages (home/host/controller): main dungeon background. */
+body.main-bg { background: #0e0b1a; }
+body.main-bg::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: url('/mainbg.png') center / cover no-repeat;
+  filter: brightness(0.85) saturate(1);
+  transform: scale(1.04); /* hide edges */
+}
+/* Subtle dark veil for text readability. */
+body.main-bg::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background: radial-gradient(
+    circle at 50% 30%,
+    rgba(14, 11, 26, 0.25),
+    rgba(14, 11, 26, 0.55) 80%
+  );
+}
+/* Lift the actual content above the background layers. */
+body.main-bg > * { position: relative; z-index: 1; }
+
 h1, h2, h3 { margin: 0 0 0.4em; line-height: 1.1; }
 
 .brand {
