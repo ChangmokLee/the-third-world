@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>호스트 (TV) · The Third World</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <!-- LOBBY -->
+    <section id="lobby">
+      <h1 class="brand">The Third World</h1>
+      <p class="subtitle">휴대폰으로 아래 코드를 입력해 참여하세요</p>
+      <p class="muted">phone → 사이트 접속 후 "방 코드로 참여하기"</p>
+      <div id="roomCode" class="room-code">····</div>
+
+      <div id="players" class="players-grid"></div>
+
+      <button id="startBtn" class="btn" style="max-width: 360px; margin-top: 28px" disabled>
+        게임 시작 (최소 1명)
+      </button>
+    </section>
+
+    <!-- PLAYING -->
+    <section id="playing" class="hidden">
+      <h2 class="brand" style="font-size: clamp(1.6rem, 5vw, 3rem)">갈림길</h2>
+      <p class="subtitle">어둠 속 두 갈래 길이 나타났다. 어느 쪽으로?</p>
+      <div class="players-grid" id="voteStatus"></div>
+      <p class="muted" style="margin-top: 24px">휴대폰에서 선택해 주세요…</p>
+    </section>
+
+    <!-- RESULTS -->
+    <section id="results" class="hidden">
+      <h2 class="brand">결과</h2>
+      <div id="resultsBody"></div>
+      <button id="againBtn" class="btn" style="max-width: 360px; margin-top: 24px">
+        다음 라운드
+      </button>
+    </section>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const $ = (id) => document.getElementById(id);
+
+      socket.on('connect', () => socket.emit('host:create'));
+
+      socket.on('host:created', (state) => {
+        $('roomCode').textContent = state.code;
+        renderPlayers(state.players);
+      });
+
+      socket.on('room:update', (state) => {
+        renderPlayers(state.players);
+        renderVoteStatus(state.players);
+      });
+
+      socket.on('game:phase', ({ phase }) => showPhase(phase));
+
+      socket.on('game:results', ({ tally }) => {
+        const labels = { left: '왼쪽 길', right: '오른쪽 길' };
+        const body = $('resultsBody');
+        body.innerHTML = '';
+        Object.entries(tally).forEach(([choice, count]) => {
+          const row = document.createElement('p');
+          row.style.fontSize = '1.4rem';
+          row.textContent = `${labels[choice] || choice}: ${count}표`;
+          body.appendChild(row);
+        });
+        showPhase('results');
+      });
+
+      socket.on('room:closed', () => location.reload());
+
+      $('startBtn').addEventListener('click', () => socket.emit('host:start'));
+      $('againBtn').addEventListener('click', () => socket.emit('host:start'));
+
+      function renderPlayers(players) {
+        const wrap = $('players');
+        wrap.innerHTML = '';
+        players.forEach((p) => {
+          const el = document.createElement('div');
+          el.className = 'player-pill' + (p.hasChosen ? ' ready' : '');
+          el.innerHTML = `<span class="dot"></span>${escapeHtml(p.name)}`;
+          wrap.appendChild(el);
+        });
+        const btn = $('startBtn');
+        btn.disabled = players.length === 0;
+        btn.textContent = players.length === 0 ? '게임 시작 (최소 1명)' : '게임 시작';
+      }
+
+      function renderVoteStatus(players) {
+        const wrap = $('voteStatus');
+        wrap.innerHTML = '';
+        players.forEach((p) => {
+          const el = document.createElement('div');
+          el.className = 'player-pill' + (p.hasChosen ? ' ready' : '');
+          el.innerHTML = `<span class="dot"></span>${escapeHtml(p.name)}`;
+          wrap.appendChild(el);
+        });
+      }
+
+      function showPhase(phase) {
+        $('lobby').classList.toggle('hidden', phase !== 'lobby');
+        $('playing').classList.toggle('hidden', phase !== 'playing');
+        $('results').classList.toggle('hidden', phase !== 'results');
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, (c) =>
+          ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
+        );
+      }
+    </script>
+  </body>
+</html>

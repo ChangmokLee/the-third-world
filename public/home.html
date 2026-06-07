@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>홈 · The Third World</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div id="userChip" class="user-chip hidden">
+      <img id="userPhoto" src="" alt="" />
+      <span id="userName"></span>
+    </div>
+
+    <h1 class="brand">The Third World</h1>
+    <p class="subtitle">무엇을 할까요?</p>
+
+    <div class="panel">
+      <a class="btn" href="/host">📺 TV로 새 게임 시작 (호스트)</a>
+      <a class="btn secondary" href="/play">📱 방 코드로 참여하기</a>
+      <form action="/logout" method="post" style="margin-top: 16px">
+        <button class="btn secondary" type="submit">로그아웃</button>
+      </form>
+    </div>
+
+    <script>
+      fetch('/api/me')
+        .then((r) => r.json())
+        .then((data) => {
+          if (!data.authenticated) {
+            window.location.href = '/';
+            return;
+          }
+          const chip = document.getElementById('userChip');
+          document.getElementById('userName').textContent = data.user.name || '플레이어';
+          if (data.user.photo) document.getElementById('userPhoto').src = data.user.photo;
+          chip.classList.remove('hidden');
+        });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+    <title>참여하기 · The Third World</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <!-- JOIN -->
+    <section id="join">
+      <h1 class="brand" style="font-size: 2.2rem">참여하기</h1>
+      <div class="panel">
+        <p class="muted">TV 화면의 4자리 방 코드를 입력하세요</p>
+        <input id="codeInput" class="code-input" type="text" maxlength="4"
+               placeholder="ABCD" autocapitalize="characters" autocomplete="off" />
+        <input id="nameInput" type="text" maxlength="16" placeholder="닉네임" autocomplete="off" />
+        <button id="joinBtn" class="btn">입장</button>
+        <p id="joinError" class="error"></p>
+      </div>
+    </section>
+
+    <!-- WAITING -->
+    <section id="waiting" class="hidden">
+      <h2 class="brand" style="font-size: 2rem">입장 완료!</h2>
+      <p class="subtitle">방 <b id="roomLabel"></b> · <span id="meLabel"></span></p>
+      <p class="muted">호스트가 게임을 시작할 때까지 기다려 주세요…</p>
+    </section>
+
+    <!-- CHOICE -->
+    <section id="choosing" class="hidden">
+      <h2 class="brand" style="font-size: 1.8rem">선택의 순간</h2>
+      <div class="panel">
+        <p>어느 길로 갈까?</p>
+        <div class="choices">
+          <button class="choice-btn" data-choice="left">⬅ 왼쪽 길</button>
+          <button class="choice-btn" data-choice="right">오른쪽 길 ➡</button>
+        </div>
+        <p id="choiceMsg" class="muted" style="margin-top: 16px"></p>
+      </div>
+    </section>
+
+    <!-- DONE -->
+    <section id="done" class="hidden">
+      <h2 class="brand">선택 완료</h2>
+      <p class="subtitle">TV 화면을 확인하세요!</p>
+    </section>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const $ = (id) => document.getElementById(id);
+      const ERRORS = {
+        ROOM_NOT_FOUND: '방을 찾을 수 없어요. 코드를 확인하세요.',
+        ROOM_FULL: '방이 가득 찼어요.',
+        NAME_REQUIRED: '닉네임을 입력하세요.',
+      };
+
+      // Prefill code from ?code= if present (for QR links later).
+      const params = new URLSearchParams(location.search);
+      if (params.get('code')) $('codeInput').value = params.get('code').toUpperCase();
+
+      $('codeInput').addEventListener('input', (e) => {
+        e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      });
+
+      $('joinBtn').addEventListener('click', () => {
+        const code = $('codeInput').value.trim();
+        const name = $('nameInput').value.trim();
+        $('joinError').textContent = '';
+        if (!code || !name) {
+          $('joinError').textContent = '방 코드와 닉네임을 모두 입력하세요.';
+          return;
+        }
+        socket.emit('player:join', { code, name });
+      });
+
+      socket.on('player:error', ({ code }) => {
+        $('joinError').textContent = ERRORS[code] || '입장에 실패했어요.';
+      });
+
+      socket.on('player:joined', ({ code, name }) => {
+        $('roomLabel').textContent = code;
+        $('meLabel').textContent = name;
+        show('waiting');
+      });
+
+      socket.on('game:phase', ({ phase }) => {
+        if (phase === 'playing') {
+          resetChoice();
+          show('choosing');
+        } else if (phase === 'results') {
+          show('done');
+        }
+      });
+
+      socket.on('room:closed', () => {
+        alert('호스트가 방을 닫았습니다.');
+        location.href = '/';
+      });
+
+      document.querySelectorAll('.choice-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.choice-btn').forEach((b) => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          socket.emit('player:choice', { choice: btn.dataset.choice });
+          $('choiceMsg').textContent = '선택을 전송했어요! 변경하려면 다시 누르세요.';
+        });
+      });
+
+      function resetChoice() {
+        document.querySelectorAll('.choice-btn').forEach((b) => b.classList.remove('selected'));
+        $('choiceMsg').textContent = '';
+      }
+
+      function show(id) {
+        ['join', 'waiting', 'choosing', 'done'].forEach((s) =>
+          $(s).classList.toggle('hidden', s !== id)
+        );
+      }
+    </script>
+  </body>
+</html>
