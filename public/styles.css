@@ -67,8 +67,8 @@ body.main-bg::before {
   inset: 0;
   z-index: 0;
   background: url('/mainbg.png') center / cover no-repeat;
-  filter: brightness(0.85) saturate(1);
-  transform: scale(1.04); /* hide edges */
+  filter: blur(3px) brightness(0.72) saturate(1);
+  transform: scale(1.06); /* hide blurred edges */
 }
 /* Subtle dark veil for text readability. */
 body.main-bg::after {
@@ -78,8 +78,8 @@ body.main-bg::after {
   z-index: 0;
   background: radial-gradient(
     circle at 50% 30%,
-    rgba(14, 11, 26, 0.25),
-    rgba(14, 11, 26, 0.55) 80%
+    rgba(14, 11, 26, 0.30),
+    rgba(14, 11, 26, 0.62) 80%
   );
 }
 /* Lift the actual content above the background layers. */
