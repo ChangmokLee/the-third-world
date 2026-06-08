@@ -62,8 +62,11 @@ export function registerSocketHandlers(io, rooms) {
       room.phase = 'playing';
       for (const p of room.players.values()) p.choice = null;
 
-      // Secretly assign good/evil alignments and tell each player privately.
-      rooms.assignRoles(room);
+      // Assign good/evil alignments only once per game. They stay fixed for the
+      // rest of this room, so replaying "Next round" keeps everyone's side.
+      const alreadyAssigned = [...room.players.values()].some((p) => p.role);
+      if (!alreadyAssigned) rooms.assignRoles(room);
+
       for (const p of room.players.values()) {
         io.to(p.id).emit('game:role', { role: p.role });
       }
