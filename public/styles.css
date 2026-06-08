@@ -310,34 +310,74 @@ input::placeholder { color: var(--muted); }
 }
 .choice-btn.selected { border-color: var(--gold); background: rgba(255, 207, 107, 0.15); }
 
-/* Secret alignment reveal card (phone). */
+/* Secret alignment reveal card (phone) — a vertical portrait card. */
 .role-card {
-  text-align: center;
+  position: relative;
+  width: min(86vw, 360px);
+  aspect-ratio: 2 / 3;
+  margin: 0 auto;
+  border-radius: 18px;
+  overflow: hidden;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 3px solid rgba(255, 255, 255, 0.25);
+  box-shadow:
+    0 30px 70px rgba(0, 0, 0, 0.6),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.15);
   animation: roleIn 0.5s ease both;
 }
-.role-name {
-  font-family: 'Grenze Gotisch', serif;
-  font-size: clamp(2.4rem, 12vw, 3.4rem);
-  font-weight: 900;
-  line-height: 1.1;
-  margin: 10px 0 6px;
+/* Darkening + slight blur veil so the white text stays readable. */
+.role-card::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0%, rgba(0, 0, 0, 0.15) 35%, rgba(0, 0, 0, 0.75) 100%);
+  backdrop-filter: blur(1.5px);
+  -webkit-backdrop-filter: blur(1.5px);
 }
-.role-desc {
-  color: var(--text);
-  opacity: 0.9;
-  font-size: 1.05rem;
+.role-card-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 22px 20px 26px;
+  text-align: center;
+  color: #fff;
+}
+.role-kicker {
+  font-size: 0.8rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  margin: 0;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+}
+.role-title {
+  font-family: 'Grenze Gotisch', serif;
+  font-weight: 900;
+  font-size: clamp(1.8rem, 8vw, 2.4rem);
+  line-height: 1.05;
+  margin: 0;
+  text-shadow: 0 3px 14px rgba(0, 0, 0, 0.85);
+}
+.role-orders {
+  font-size: 0.95rem;
   line-height: 1.5;
+  margin: 6px 0 0;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9);
 }
 .role-card.good {
-  border-color: rgba(127, 227, 160, 0.55);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45), 0 0 50px rgba(127, 227, 160, 0.22);
+  border-color: rgba(255, 224, 138, 0.7);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6), 0 0 50px rgba(255, 207, 107, 0.22);
 }
-.role-card.good .role-name { color: #7fe3a0; text-shadow: 0 0 24px rgba(127, 227, 160, 0.5); }
 .role-card.evil {
-  border-color: rgba(255, 110, 110, 0.55);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45), 0 0 50px rgba(255, 110, 110, 0.25);
+  border-color: rgba(255, 110, 110, 0.7);
+  box-shadow: 0 30px 70px rgba(0, 0, 0, 0.6), 0 0 50px rgba(255, 110, 110, 0.25);
 }
-.role-card.evil .role-name { color: #ff8a8a; text-shadow: 0 0 24px rgba(255, 110, 110, 0.55); }
 @keyframes roleIn {
   from { opacity: 0; transform: scale(0.9) translateY(10px); }
   to { opacity: 1; transform: scale(1) translateY(0); }

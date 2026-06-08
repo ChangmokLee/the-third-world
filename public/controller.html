@@ -34,13 +34,15 @@
 
     <!-- ROLE REVEAL -->
     <section id="role" class="hidden">
-      <div id="roleCard" class="panel role-card">
-        <p class="muted">Your secret alignment</p>
-        <div id="roleName" class="role-name">…</div>
-        <p id="roleDesc" class="role-desc"></p>
-        <button id="roleConfirmBtn" class="btn" style="margin-top: 20px">I understand my role</button>
-        <p id="roleAckMsg" class="muted" style="margin-top: 14px"></p>
+      <div id="roleCard" class="role-card">
+        <div class="role-card-overlay">
+          <p class="role-kicker" id="roleKicker"></p>
+          <h2 class="role-title" id="roleTitle"></h2>
+          <p class="role-orders" id="roleOrders"></p>
+        </div>
       </div>
+      <button id="roleConfirmBtn" class="btn" style="margin-top: 18px; max-width: 360px">I accept my fate</button>
+      <p id="roleAckMsg" class="muted" style="margin-top: 12px"></p>
     </section>
 
     <!-- CHOICE -->
@@ -126,18 +128,24 @@
         roleConfirmed = false;
         const card = $('roleCard');
         if (role === 'evil') {
-          $('roleName').textContent = '😈 Evil';
-          $('roleDesc').textContent = 'You serve the darkness. Mislead the others and seize the Third World.';
+          card.style.backgroundImage = "url('/bad-team.png')";
           card.classList.add('evil');
           card.classList.remove('good');
+          $('roleKicker').textContent = 'Decree of the Cult of the Fallen';
+          $('roleTitle').textContent = 'Doom the Expedition';
+          $('roleOrders').textContent =
+            'By the will of the dark covenant, you march among the chosen — not to save them, but to ensure none return. Let the Third World fall into shadow.';
         } else {
-          $('roleName').textContent = '😇 Good';
-          $('roleDesc').textContent = 'You fight for the light. Protect the party and uncover the traitors.';
+          card.style.backgroundImage = "url('/good-team.png')";
           card.classList.add('good');
           card.classList.remove('evil');
+          $('roleKicker').textContent = 'By Command of the Emperor';
+          $('roleTitle').textContent = 'Appointed to the Expedition';
+          $('roleOrders').textContent =
+            'You are named to the Emperor\u2019s expedition. Carry out your charge with honor, stand by your companions, and return home victorious.';
         }
         $('roleConfirmBtn').disabled = false;
-        $('roleConfirmBtn').textContent = 'I understand my role';
+        $('roleConfirmBtn').textContent = 'I accept my fate';
         $('roleAckMsg').textContent = '';
         show('role');
       });
