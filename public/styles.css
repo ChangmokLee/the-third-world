@@ -121,7 +121,8 @@ h1, h2, h3 { margin: 0 0 0.4em; line-height: 1.1; }
 }
 
 /* Sign-in box: hand-styled gothic panel (no image). */
-.panel.signin-panel {
+.panel.signin-panel,
+.main-bg .panel {
   position: relative;
   background:
     linear-gradient(160deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.04) 100%);
