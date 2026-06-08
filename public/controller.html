@@ -60,16 +60,22 @@
         NAME_REQUIRED: 'Please enter a nickname.',
       };
 
-      // Prefill code from ?code= if present (for QR links later).
+      // Prefill code from ?code= if present (QR links include it).
       const params = new URLSearchParams(location.search);
-      if (params.get('code')) $('codeInput').value = params.get('code').toUpperCase();
+      const codeFromQr = (params.get('code') || '').toUpperCase();
+      if (codeFromQr) $('codeInput').value = codeFromQr;
 
       // The player is logged in (route is protected); prefill their Google name.
+      // When they arrived via a QR link (?code=...), join the room automatically
+      // so they don't have to re-enter anything after signing in.
       fetch('/api/me')
         .then((r) => r.json())
         .then((data) => {
-          if (data.user?.name && !$('nameInput').value) {
-            $('nameInput').value = data.user.name.slice(0, 16);
+          const myName = data.user?.name ? data.user.name.slice(0, 16) : '';
+          if (myName && !$('nameInput').value) $('nameInput').value = myName;
+
+          if (codeFromQr && myName) {
+            socket.emit('player:join', { code: codeFromQr, name: myName });
           }
         })
         .catch(() => {});
