@@ -40,6 +40,7 @@
       <h2 class="brand" style="font-size: clamp(1.6rem, 5vw, 3rem)">The Fork</h2>
       <p class="subtitle">Two paths emerge from the darkness. Which way?</p>
       <p id="roleSummary" class="muted" style="margin-bottom: 16px"></p>
+      <p id="roleAckStatus" class="muted" style="margin-bottom: 16px"></p>
       <div class="players-grid" id="voteStatus"></div>
       <p class="muted" style="margin-top: 24px">Make your choice on your phone…</p>
     </section>
@@ -78,6 +79,15 @@
         $('roleSummary').innerHTML =
           `Alignments dealt — <b style="color:#7fe3a0">😇 Good ${good}</b> · ` +
           `<b style="color:#ff8a8a">😈 Evil ${evil}</b> &nbsp;(roles are secret)`;
+      });
+
+      socket.on('game:roleAcks', ({ confirmed, total }) => {
+        const status = $('roleAckStatus');
+        if (confirmed >= total) {
+          status.textContent = `All ${total} players confirmed their roles ✓`;
+        } else {
+          status.textContent = `Confirming roles… ${confirmed}/${total} ready`;
+        }
       });
 
       socket.on('game:results', ({ tally }) => {

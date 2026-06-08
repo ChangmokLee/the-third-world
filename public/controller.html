@@ -37,7 +37,8 @@
         <p class="muted">Your secret alignment</p>
         <div id="roleName" class="role-name">…</div>
         <p id="roleDesc" class="role-desc"></p>
-        <p class="muted" style="margin-top: 18px">Keep it to yourself. The game is about to begin…</p>
+        <button id="roleConfirmBtn" class="btn" style="margin-top: 20px">I understand my role</button>
+        <p id="roleAckMsg" class="muted" style="margin-top: 14px"></p>
       </div>
     </section>
 
@@ -117,8 +118,11 @@
 
       // Secret alignment, revealed only on this player's phone.
       let myRole = null;
+      let roleConfirmed = false;
+      let currentPhase = 'lobby';
       socket.on('game:role', ({ role }) => {
         myRole = role;
+        roleConfirmed = false;
         const card = $('roleCard');
         if (role === 'evil') {
           $('roleName').textContent = '😈 Evil';
@@ -131,15 +135,29 @@
           card.classList.add('good');
           card.classList.remove('evil');
         }
+        $('roleConfirmBtn').disabled = false;
+        $('roleConfirmBtn').textContent = 'I understand my role';
+        $('roleAckMsg').textContent = '';
         show('role');
       });
 
+      // The player must confirm before their choice screen opens.
+      $('roleConfirmBtn').addEventListener('click', () => {
+        if (roleConfirmed) return;
+        roleConfirmed = true;
+        socket.emit('player:roleAck');
+        $('roleConfirmBtn').disabled = true;
+        $('roleAckMsg').textContent = 'Waiting for everyone to confirm…';
+        if (currentPhase === 'playing') show('choosing');
+      });
+
       socket.on('game:phase', ({ phase }) => {
+        currentPhase = phase;
         if (phase === 'playing') {
           resetChoice();
-          // If a role was revealed, let it linger a few seconds first.
-          if (myRole && !$('role').classList.contains('hidden')) {
-            setTimeout(() => show('choosing'), 4000);
+          // Hold on the role card until this player taps confirm.
+          if (myRole && !roleConfirmed) {
+            show('role');
           } else {
             show('choosing');
           }

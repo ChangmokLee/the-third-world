@@ -51,6 +51,7 @@ export function createRoomStore() {
       connected: true,
       choice: null,
       role: null, // 'good' | 'evil' — assigned secretly when the game starts
+      roleAck: false, // has the player confirmed (seen) their role?
     };
     room.players.set(socketId, player);
     return { room, player };

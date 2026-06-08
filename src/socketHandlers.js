@@ -67,6 +67,10 @@ export function registerSocketHandlers(io, rooms) {
       const alreadyAssigned = [...room.players.values()].some((p) => p.role);
       if (!alreadyAssigned) rooms.assignRoles(room);
 
+      // Everyone must re-confirm they have seen their role before the choice
+      // screen opens on their phone.
+      for (const p of room.players.values()) p.roleAck = false;
+
       for (const p of room.players.values()) {
         io.to(p.id).emit('game:role', { role: p.role });
       }
@@ -74,7 +78,27 @@ export function registerSocketHandlers(io, rooms) {
       io.to(room.code).emit('game:phase', { phase: 'playing' });
       // The TV only learns how many of each side there are, never who.
       io.to(room.code).emit('game:roleCounts', rooms.roleCounts(room));
+      io.to(room.code).emit('game:roleAcks', {
+        confirmed: 0,
+        total: room.players.size,
+      });
       io.to(room.code).emit('room:update', rooms.publicState(room));
+    });
+
+    // -----------------------------------------------------------------------
+    // PLAYER confirms they have seen their secret role
+    // -----------------------------------------------------------------------
+    socket.on('player:roleAck', () => {
+      const room = rooms.getRoom(socket.data.roomCode);
+      if (!room) return;
+      const player = room.players.get(socket.id);
+      if (!player) return;
+      player.roleAck = true;
+      const confirmed = [...room.players.values()].filter((p) => p.roleAck).length;
+      io.to(room.code).emit('game:roleAcks', {
+        confirmed,
+        total: room.players.size,
+      });
     });
 
     // -----------------------------------------------------------------------
