@@ -282,3 +282,36 @@ input::placeholder { color: var(--muted); }
   cursor: pointer;
 }
 .choice-btn.selected { border-color: var(--gold); background: rgba(255, 207, 107, 0.15); }
+
+/* Secret alignment reveal card (phone). */
+.role-card {
+  text-align: center;
+  animation: roleIn 0.5s ease both;
+}
+.role-name {
+  font-family: 'Grenze Gotisch', serif;
+  font-size: clamp(2.4rem, 12vw, 3.4rem);
+  font-weight: 900;
+  line-height: 1.1;
+  margin: 10px 0 6px;
+}
+.role-desc {
+  color: var(--text);
+  opacity: 0.9;
+  font-size: 1.05rem;
+  line-height: 1.5;
+}
+.role-card.good {
+  border-color: rgba(127, 227, 160, 0.55);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45), 0 0 50px rgba(127, 227, 160, 0.22);
+}
+.role-card.good .role-name { color: #7fe3a0; text-shadow: 0 0 24px rgba(127, 227, 160, 0.5); }
+.role-card.evil {
+  border-color: rgba(255, 110, 110, 0.55);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45), 0 0 50px rgba(255, 110, 110, 0.25);
+}
+.role-card.evil .role-name { color: #ff8a8a; text-shadow: 0 0 24px rgba(255, 110, 110, 0.55); }
+@keyframes roleIn {
+  from { opacity: 0; transform: scale(0.9) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}

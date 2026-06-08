@@ -31,6 +31,16 @@
       <p class="muted">Waiting for the host to start the game…</p>
     </section>
 
+    <!-- ROLE REVEAL -->
+    <section id="role" class="hidden">
+      <div id="roleCard" class="panel role-card">
+        <p class="muted">Your secret alignment</p>
+        <div id="roleName" class="role-name">…</div>
+        <p id="roleDesc" class="role-desc"></p>
+        <p class="muted" style="margin-top: 18px">Keep it to yourself. The game is about to begin…</p>
+      </div>
+    </section>
+
     <!-- CHOICE -->
     <section id="choosing" class="hidden">
       <h2 class="brand" style="font-size: 1.8rem">Decision Time</h2>
@@ -105,10 +115,34 @@
         show('waiting');
       });
 
+      // Secret alignment, revealed only on this player's phone.
+      let myRole = null;
+      socket.on('game:role', ({ role }) => {
+        myRole = role;
+        const card = $('roleCard');
+        if (role === 'evil') {
+          $('roleName').textContent = '😈 Evil';
+          $('roleDesc').textContent = 'You serve the darkness. Mislead the others and seize the Third World.';
+          card.classList.add('evil');
+          card.classList.remove('good');
+        } else {
+          $('roleName').textContent = '😇 Good';
+          $('roleDesc').textContent = 'You fight for the light. Protect the party and uncover the traitors.';
+          card.classList.add('good');
+          card.classList.remove('evil');
+        }
+        show('role');
+      });
+
       socket.on('game:phase', ({ phase }) => {
         if (phase === 'playing') {
           resetChoice();
-          show('choosing');
+          // If a role was revealed, let it linger a few seconds first.
+          if (myRole && !$('role').classList.contains('hidden')) {
+            setTimeout(() => show('choosing'), 4000);
+          } else {
+            show('choosing');
+          }
         } else if (phase === 'results') {
           show('done');
         }
@@ -134,7 +168,7 @@
       }
 
       function show(id) {
-        ['join', 'waiting', 'choosing', 'done'].forEach((s) =>
+        ['join', 'waiting', 'role', 'choosing', 'done'].forEach((s) =>
           $(s).classList.toggle('hidden', s !== id)
         );
       }

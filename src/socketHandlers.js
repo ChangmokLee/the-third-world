@@ -61,7 +61,16 @@ export function registerSocketHandlers(io, rooms) {
       if (!room || room.hostSocketId !== socket.id) return;
       room.phase = 'playing';
       for (const p of room.players.values()) p.choice = null;
+
+      // Secretly assign good/evil alignments and tell each player privately.
+      rooms.assignRoles(room);
+      for (const p of room.players.values()) {
+        io.to(p.id).emit('game:role', { role: p.role });
+      }
+
       io.to(room.code).emit('game:phase', { phase: 'playing' });
+      // The TV only learns how many of each side there are, never who.
+      io.to(room.code).emit('game:roleCounts', rooms.roleCounts(room));
       io.to(room.code).emit('room:update', rooms.publicState(room));
     });
 

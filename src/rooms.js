@@ -50,6 +50,7 @@ export function createRoomStore() {
       name: trimmed,
       connected: true,
       choice: null,
+      role: null, // 'good' | 'evil' — assigned secretly when the game starts
     };
     room.players.set(socketId, player);
     return { room, player };
@@ -63,6 +64,37 @@ export function createRoomStore() {
       }
     }
     return null;
+  }
+
+  // Secretly assign a good/evil alignment to every player in the room.
+  // Roughly one third are evil (at least one when there are 3+ players),
+  // the rest are good. Returns the room for convenience.
+  function assignRoles(room) {
+    const players = [...room.players.values()];
+    const n = players.length;
+    let evilCount = Math.floor(n / 3);
+    if (n >= 3 && evilCount < 1) evilCount = 1;
+    if (evilCount >= n) evilCount = Math.max(0, n - 1); // never all-evil
+
+    // Shuffle, then mark the first `evilCount` as evil.
+    for (let i = players.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [players[i], players[j]] = [players[j], players[i]];
+    }
+    players.forEach((p, i) => {
+      p.role = i < evilCount ? 'evil' : 'good';
+    });
+    return room;
+  }
+
+  function roleCounts(room) {
+    let good = 0;
+    let evil = 0;
+    for (const p of room.players.values()) {
+      if (p.role === 'evil') evil++;
+      else if (p.role === 'good') good++;
+    }
+    return { good, evil };
   }
 
   function removeRoomByHost(socketId) {
@@ -94,6 +126,8 @@ export function createRoomStore() {
     addPlayer,
     removePlayer,
     removeRoomByHost,
+    assignRoles,
+    roleCounts,
     publicState,
     MAX_PLAYERS,
   };
