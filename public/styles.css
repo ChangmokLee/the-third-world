@@ -382,3 +382,30 @@ input::placeholder { color: var(--muted); }
   from { opacity: 0; transform: scale(0.9) translateY(10px); }
   to { opacity: 1; transform: scale(1) translateY(0); }
 }
+
+/* EN / 한국어 toggle above the role card. */
+.lang-toggle {
+  display: inline-flex;
+  gap: 0;
+  margin: 0 auto 14px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  overflow: hidden;
+  background: rgba(255, 255, 255, 0.06);
+}
+.lang-toggle button {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 7px 16px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.lang-toggle button.active {
+  background: rgba(255, 255, 255, 0.18);
+  color: #fff;
+}

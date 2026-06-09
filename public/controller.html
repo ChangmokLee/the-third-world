@@ -34,6 +34,10 @@
 
     <!-- ROLE REVEAL -->
     <section id="role" class="hidden">
+      <div class="lang-toggle" id="langToggle">
+        <button type="button" data-lang="en" class="active">EN</button>
+        <button type="button" data-lang="ko">한국어</button>
+      </div>
       <div id="roleCard" class="role-card">
         <div class="role-card-overlay">
           <p class="role-kicker" id="roleKicker"></p>
@@ -121,34 +125,101 @@
 
       // Secret alignment, revealed only on this player's phone.
       let myRole = null;
+      let myClass = null;
       let roleConfirmed = false;
       let currentPhase = 'lobby';
-      socket.on('game:role', ({ role, charClass }) => {
-        myRole = role;
-        roleConfirmed = false;
+
+      // Bilingual copy for the role card. Class names are keyed by class id.
+      const I18N = {
+        en: {
+          goodKicker: 'By Command of the Emperor',
+          goodOrders:
+            'You are named to the Emperor\u2019s expedition. Carry out your charge with honor and return home victorious.',
+          goodFallback: 'Appointed to the Expedition',
+          evilKicker: 'Decree of the Cult of the Fallen',
+          evilOrders:
+            'You march among the chosen — not to save them, but to ensure none return. Let the Third World fall into shadow.',
+          evilFallback: 'Doom the Expedition',
+          confirm: 'I accept my fate',
+          waiting: 'Waiting for everyone to confirm…',
+          classes: {
+            'emperor-knight': 'Knight of the Emperor',
+            inquisitor: 'Inquisitor',
+            'court-wizard': 'Court Wizard',
+            'fallen-knight': 'Fallen Knight',
+            succubus: 'Succubus',
+          },
+        },
+        ko: {
+          goodKicker: '황제의 명령',
+          goodOrders:
+            '그대를 원정대로 임명한다. 임무를 무사히 마치고 명예롭게 귀환하라.',
+          goodFallback: '원정대로 임명되었다',
+          evilKicker: '악의 교단 명령서',
+          evilOrders:
+            '그대는 선택받은 자들 사이를 걷는다 — 그들을 구하기 위해서가 아니라, 누구도 돌아오지 못하게 하기 위해. 원정대를 파멸시켜라.',
+          evilFallback: '원정대를 파멸시켜라',
+          confirm: '운명을 받아들인다',
+          waiting: '모두가 확인하기를 기다리는 중…',
+          classes: {
+            'emperor-knight': '황제의 기사',
+            inquisitor: '이단 심문관',
+            'court-wizard': '궁정 마법사',
+            'fallen-knight': '타락한 기사',
+            succubus: '서큐버스',
+          },
+        },
+      };
+
+      let lang = localStorage.getItem('ttw-lang') || 'en';
+
+      function renderRoleCard() {
+        if (!myRole) return;
+        const t = I18N[lang];
         const card = $('roleCard');
-        const className = charClass?.name || '';
-        const classId = charClass?.id || '';
-        if (role === 'evil') {
+        const classId = myClass?.id || '';
+        const className = classId ? t.classes[classId] : '';
+        if (myRole === 'evil') {
           card.style.backgroundImage = classId ? `url('/${classId}.png')` : "url('/bad-team.png')";
           card.classList.add('evil');
           card.classList.remove('good');
-          $('roleKicker').textContent = 'Decree of the Cult of the Fallen';
-          $('roleTitle').textContent = className || 'Doom the Expedition';
-          $('roleOrders').textContent =
-            'You march among the chosen — not to save them, but to ensure none return. Let the Third World fall into shadow.';
+          $('roleKicker').textContent = t.evilKicker;
+          $('roleTitle').textContent = className || t.evilFallback;
+          $('roleOrders').textContent = t.evilOrders;
         } else {
           card.style.backgroundImage = classId ? `url('/${classId}.png')` : "url('/good-team.png')";
           card.classList.add('good');
           card.classList.remove('evil');
-          $('roleKicker').textContent = 'By Command of the Emperor';
-          $('roleTitle').textContent = className || 'Appointed to the Expedition';
-          $('roleOrders').textContent =
-            'You are named to the Emperor\u2019s expedition. Carry out your charge with honor and return home victorious.';
+          $('roleKicker').textContent = t.goodKicker;
+          $('roleTitle').textContent = className || t.goodFallback;
+          $('roleOrders').textContent = t.goodOrders;
         }
+        // Confirm button text follows the language until the player confirms.
+        if (!roleConfirmed) $('roleConfirmBtn').textContent = t.confirm;
+        if (roleConfirmed) $('roleAckMsg').textContent = t.waiting;
+      }
+
+      // Language toggle.
+      function setLang(next) {
+        lang = next;
+        localStorage.setItem('ttw-lang', next);
+        document.querySelectorAll('#langToggle button').forEach((b) =>
+          b.classList.toggle('active', b.dataset.lang === next)
+        );
+        renderRoleCard();
+      }
+      document.querySelectorAll('#langToggle button').forEach((b) =>
+        b.addEventListener('click', () => setLang(b.dataset.lang))
+      );
+      setLang(lang); // sync toggle highlight on load
+
+      socket.on('game:role', ({ role, charClass }) => {
+        myRole = role;
+        myClass = charClass || null;
+        roleConfirmed = false;
         $('roleConfirmBtn').disabled = false;
-        $('roleConfirmBtn').textContent = 'I accept my fate';
         $('roleAckMsg').textContent = '';
+        renderRoleCard();
         show('role');
       });
 
@@ -158,7 +229,7 @@
         roleConfirmed = true;
         socket.emit('player:roleAck');
         $('roleConfirmBtn').disabled = true;
-        $('roleAckMsg').textContent = 'Waiting for everyone to confirm…';
+        $('roleAckMsg').textContent = I18N[lang].waiting;
         if (currentPhase === 'playing') show('choosing');
       });
 
