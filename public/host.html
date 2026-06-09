@@ -36,22 +36,47 @@
       <a class="btn secondary" href="/home" style="max-width: 360px; margin-top: 12px" data-i18n="host.back">Back</a>
     </section>
 
-    <!-- PLAYING -->
-    <section id="playing" class="hidden">
-      <h2 class="brand" style="font-size: clamp(1.6rem, 5vw, 3rem)" data-i18n="host.forkTitle">The Fork</h2>
-      <p class="subtitle" data-i18n="host.forkSubtitle">Two paths emerge from the darkness. Which way?</p>
-      <p id="roleSummary" class="muted" style="margin-bottom: 16px"></p>
-      <p id="roleAckStatus" class="muted" style="margin-bottom: 16px"></p>
-      <div class="players-grid" id="voteStatus"></div>
-      <p class="muted" style="margin-top: 24px" data-i18n="host.makeChoice">Make your choice on your phone…</p>
+    <!-- ROLE CONFIRMATION -->
+    <section id="roleconfirm" class="hidden">
+      <h2 class="brand" style="font-size: clamp(1.8rem, 6vw, 3.2rem)" data-i18n="host.fatesTitle">Fates are sealed</h2>
+      <p id="roleSummary" class="muted" style="margin-bottom: 12px; font-size: 1.2rem"></p>
+      <p id="roleAckStatus" class="muted" style="margin-bottom: 20px"></p>
+      <p class="subtitle" data-i18n="host.confirmHint">Each player confirms their secret role on their phone.</p>
+      <button id="beginNightBtn" class="btn" style="max-width: 360px; margin-top: 16px" disabled
+              data-i18n="host.beginNight">Night falls…</button>
     </section>
 
-    <!-- RESULTS -->
-    <section id="results" class="hidden">
-      <h2 class="brand" data-i18n="host.results">Results</h2>
-      <div id="resultsBody"></div>
-      <button id="againBtn" class="btn" style="max-width: 360px; margin-top: 24px" data-i18n="host.nextRound">
-        Next round
+    <!-- NIGHT -->
+    <section id="night" class="hidden">
+      <h2 class="brand night-title" id="nightTitle">🌙 Night</h2>
+      <p class="subtitle" data-i18n="host.nightHint">Solve the trials together. In the dark, some pursue other ends…</p>
+
+      <div class="puzzle-board" id="puzzleBoard"></div>
+      <p id="puzzleProgress" class="muted" style="margin-top: 8px; font-size: 1.2rem"></p>
+
+      <div class="players-grid" id="nightPlayers" style="margin-top: 18px"></div>
+      <button id="nightAdvanceBtn" class="btn secondary" style="max-width: 320px; margin-top: 20px"
+              data-i18n="host.forceDawn">Force dawn</button>
+    </section>
+
+    <!-- DAY -->
+    <section id="day" class="hidden">
+      <h2 class="brand day-title" id="dayTitle">☀ Dawn</h2>
+      <div id="dayReport" class="day-report"></div>
+      <p class="subtitle" data-i18n="host.voteHint">Debate, then vote on your phones to execute one suspect.</p>
+
+      <div class="players-grid" id="dayPlayers" style="margin-top: 12px"></div>
+      <p id="voteProgress" class="muted" style="margin-top: 12px; font-size: 1.1rem"></p>
+      <button id="dayAdvanceBtn" class="btn secondary" style="max-width: 320px; margin-top: 16px"
+              data-i18n="host.forceVote">Force the verdict</button>
+    </section>
+
+    <!-- GAME OVER -->
+    <section id="gameover" class="hidden">
+      <h2 class="brand" id="gameoverTitle" style="font-size: clamp(2rem, 8vw, 4rem)"></h2>
+      <div id="roster" class="roster"></div>
+      <button id="againBtn" class="btn" style="max-width: 360px; margin-top: 24px" data-i18n="host.newGame">
+        New game
       </button>
     </section>
 
@@ -62,11 +87,13 @@
       const $ = (id) => document.getElementById(id);
       const t = (k, v) => I18N.t(k, v);
 
-      // Remember the latest dynamic data so we can re-render on language change.
+      // Latest dynamic data, so we can re-render on language change.
       let lastPlayers = [];
       let lastRoleCounts = null;
       let lastRoleAcks = null;
-      let lastTally = null;
+      let lastNight = null;
+      let lastDay = null;
+      let lastGameOver = null;
 
       socket.on('connect', () => socket.emit('host:create'));
 
@@ -77,102 +104,217 @@
         renderPlayers(state.players);
       });
 
-      socket.on('room:update', (state) => {
-        renderPlayers(state.players);
-        renderVoteStatus(state.players);
-      });
-
+      socket.on('room:update', (state) => renderPlayers(state.players));
       socket.on('game:phase', ({ phase }) => showPhase(phase));
 
       socket.on('game:roleCounts', (counts) => {
         lastRoleCounts = counts;
         renderRoleCounts();
       });
-
       socket.on('game:roleAcks', (acks) => {
         lastRoleAcks = acks;
         renderRoleAcks();
       });
 
-      socket.on('game:results', ({ tally }) => {
-        lastTally = tally;
-        renderResults();
-        showPhase('results');
+      socket.on('game:night', (data) => {
+        lastNight = data;
+        renderNight();
+      });
+      socket.on('game:puzzleUpdate', (data) => {
+        if (!lastNight) return;
+        const map = {};
+        data.puzzles.forEach((p) => (map[p.id] = p.solved));
+        lastNight.puzzles.forEach((p) => (p.solved = map[p.id] ?? p.solved));
+        lastNight.progress = data.progress;
+        renderNight();
+      });
+
+      socket.on('game:day', (data) => {
+        lastDay = data;
+        renderDay();
+      });
+      socket.on('game:voteUpdate', (data) => {
+        if (!lastDay) return;
+        lastDay.tally = data.tally;
+        lastDay.voted = data.voted;
+        lastDay.voteTotal = data.total;
+        renderVoteProgress();
+      });
+      socket.on('game:dayResult', (data) => {
+        if (lastDay) lastDay.players = data.players;
+        flashDayResult(data.report);
+      });
+
+      socket.on('game:over', (data) => {
+        lastGameOver = data;
+        renderGameOver();
+        showPhase('gameover');
       });
 
       socket.on('room:closed', () => location.reload());
 
       $('startBtn').addEventListener('click', () => socket.emit('host:start'));
-      $('againBtn').addEventListener('click', () => socket.emit('host:start'));
+      $('beginNightBtn').addEventListener('click', () => socket.emit('host:beginNight'));
+      $('nightAdvanceBtn').addEventListener('click', () => socket.emit('host:advance'));
+      $('dayAdvanceBtn').addEventListener('click', () => socket.emit('host:advance'));
+      $('againBtn').addEventListener('click', () => socket.emit('host:reset'));
 
-      // Re-render every dynamic string when the language changes.
       window.addEventListener('ttw:languagechange', () => {
         renderPlayers(lastPlayers);
         renderRoleCounts();
         renderRoleAcks();
-        renderResults();
+        renderNight();
+        renderDay();
+        renderGameOver();
       });
 
-      function renderRoleCounts() {
-        if (!lastRoleCounts) return;
-        const { good, evil } = lastRoleCounts;
-        $('roleSummary').innerHTML =
-          `${t('host.alignmentsDealt')} — <b style="color:#7fe3a0">😇 ${t('host.good')} ${good}</b> · ` +
-          `<b style="color:#ff8a8a">😈 ${t('host.evil')} ${evil}</b> &nbsp;${t('host.rolesSecret')}`;
-      }
-
-      function renderRoleAcks() {
-        if (!lastRoleAcks) return;
-        const { confirmed, total } = lastRoleAcks;
-        $('roleAckStatus').textContent =
-          confirmed >= total
-            ? t('host.allConfirmed', { total })
-            : t('host.confirming', { confirmed, total });
-      }
-
-      function renderResults() {
-        if (!lastTally) return;
-        const labels = { left: t('host.leftPath'), right: t('host.rightPath') };
-        const body = $('resultsBody');
-        body.innerHTML = '';
-        Object.entries(lastTally).forEach(([choice, count]) => {
-          const row = document.createElement('p');
-          row.style.fontSize = '1.4rem';
-          row.textContent = `${labels[choice] || choice}: ${count} ${t('host.votes')}`;
-          body.appendChild(row);
-        });
-      }
-
+      // ---- LOBBY ----
       function renderPlayers(players) {
         lastPlayers = players || [];
         const wrap = $('players');
         wrap.innerHTML = '';
         lastPlayers.forEach((p) => {
           const el = document.createElement('div');
-          el.className = 'player-pill' + (p.hasChosen ? ' ready' : '');
+          el.className = 'player-pill';
           el.innerHTML = `<span class="dot"></span>${escapeHtml(p.name)}`;
           wrap.appendChild(el);
         });
         const btn = $('startBtn');
-        btn.disabled = lastPlayers.length === 0;
-        btn.textContent = lastPlayers.length === 0 ? t('host.startNeed') : t('host.start');
+        btn.disabled = lastPlayers.length < 3;
+        btn.textContent = lastPlayers.length < 3 ? t('host.startNeed3') : t('host.start');
       }
 
-      function renderVoteStatus(players) {
-        const wrap = $('voteStatus');
-        wrap.innerHTML = '';
-        players.forEach((p) => {
+      // ---- ROLE CONFIRM ----
+      function renderRoleCounts() {
+        if (!lastRoleCounts) return;
+        const { good, evil } = lastRoleCounts;
+        $('roleSummary').innerHTML =
+          `<b style="color:#7fe3a0">😇 ${t('host.good')} ${good}</b> · ` +
+          `<b style="color:#ff8a8a">😈 ${t('host.evil')} ${evil}</b> &nbsp;${t('host.rolesSecret')}`;
+      }
+      function renderRoleAcks() {
+        if (!lastRoleAcks) return;
+        const { confirmed, total } = lastRoleAcks;
+        const allIn = confirmed >= total && total > 0;
+        $('roleAckStatus').textContent = allIn
+          ? t('host.allConfirmed', { total })
+          : t('host.confirming', { confirmed, total });
+        $('beginNightBtn').disabled = !allIn;
+      }
+
+      // ---- NIGHT ----
+      function renderNight() {
+        if (!lastNight) return;
+        $('nightTitle').textContent = t('host.nightN', { n: lastNight.day });
+        const board = $('puzzleBoard');
+        board.innerHTML = '';
+        const lang = I18N.getLang();
+        lastNight.puzzles.forEach((p) => {
           const el = document.createElement('div');
-          el.className = 'player-pill' + (p.hasChosen ? ' ready' : '');
-          el.innerHTML = `<span class="dot"></span>${escapeHtml(p.name)}`;
+          el.className = 'puzzle-card' + (p.solved ? ' solved' : '');
+          el.innerHTML =
+            `<span class="puzzle-q">${escapeHtml(lang === 'ko' ? p.ko : p.en)}</span>` +
+            `<span class="puzzle-state">${p.solved ? '✓' : '…'}</span>`;
+          board.appendChild(el);
+        });
+        const prog = lastNight.progress || { solved: 0, total: 0 };
+        $('puzzleProgress').textContent = t('host.puzzleProgress', prog);
+        renderPlayerGrid('nightPlayers', lastNight.players);
+      }
+
+      // ---- DAY ----
+      function renderDay() {
+        if (!lastDay) return;
+        $('dayTitle').textContent = t('host.dayN', { n: lastDay.day });
+        const r = lastDay.report;
+        const box = $('dayReport');
+        box.innerHTML = '';
+        if (r) {
+          if (r.deaths && r.deaths.length) {
+            addReport(box, t('host.nightDeath', { names: r.deaths.join(', ') }), 'bad');
+          } else {
+            addReport(box, t('host.peacefulNight'), 'good');
+          }
+          if (r.saved) addReport(box, t('host.someoneSaved'), 'good');
+          if (r.revealKnightName) addReport(box, t('host.knightRevealed', { name: r.revealKnightName }), 'reveal');
+        }
+        renderPlayerGrid('dayPlayers', lastDay.players);
+        renderVoteProgress();
+      }
+      function renderVoteProgress() {
+        if (!lastDay) return;
+        const voted = (lastDay.voted || []).length;
+        const total = lastDay.voteTotal != null
+          ? lastDay.voteTotal
+          : (lastDay.players || []).filter((p) => p.alive).length;
+        $('voteProgress').textContent = t('host.voteProgress', { voted, total });
+      }
+      function flashDayResult(report) {
+        const box = $('dayReport');
+        let msg = t('host.noExecution');
+        if (report.executedName) {
+          msg = report.byEmperor
+            ? t('host.emperorExecuted', { name: report.executedName })
+            : t('host.executed', { name: report.executedName });
+        } else if (report.tie) {
+          msg = t('host.voteTie');
+        }
+        addReport(box, msg, report.executedName ? 'bad' : 'good');
+        if (lastDay) renderPlayerGrid('dayPlayers', lastDay.players);
+      }
+
+      // ---- GAME OVER ----
+      function renderGameOver() {
+        if (!lastGameOver) return;
+        const win = lastGameOver.winner;
+        $('gameoverTitle').textContent = win === 'good' ? t('host.goodWins') : t('host.evilWins');
+        $('gameoverTitle').style.color = win === 'good' ? '#7fe3a0' : '#ff8a8a';
+        const wrap = $('roster');
+        wrap.innerHTML = '';
+        lastGameOver.roster.forEach((p) => {
+          const el = document.createElement('div');
+          el.className = 'roster-row ' + (p.role === 'evil' ? 'evil' : 'good');
+          const cls = p.charClass ? t('class.' + p.charClass) : '';
+          const status = p.alive ? '' : ' 💀';
+          el.innerHTML =
+            `<span>${escapeHtml(p.name)}${status}</span>` +
+            `<span class="roster-class">${escapeHtml(cls)}</span>`;
           wrap.appendChild(el);
         });
       }
 
+      // ---- shared helpers ----
+      function renderPlayerGrid(elId, players) {
+        const wrap = $(elId);
+        wrap.innerHTML = '';
+        (players || []).forEach((p) => {
+          const el = document.createElement('div');
+          el.className = 'player-pill' + (p.alive ? '' : ' dead');
+          const skull = p.alive ? '' : ' 💀';
+          el.innerHTML = `<span class="dot"></span>${escapeHtml(p.name)}${skull}`;
+          wrap.appendChild(el);
+        });
+      }
+      function addReport(box, text, kind) {
+        const p = document.createElement('p');
+        p.className = 'report-line ' + (kind || '');
+        p.textContent = text;
+        box.appendChild(p);
+      }
+
       function showPhase(phase) {
-        $('lobby').classList.toggle('hidden', phase !== 'lobby');
-        $('playing').classList.toggle('hidden', phase !== 'playing');
-        $('results').classList.toggle('hidden', phase !== 'results');
+        const map = {
+          lobby: 'lobby',
+          role: 'roleconfirm',
+          night: 'night',
+          nightResolving: 'night',
+          day: 'day',
+          gameover: 'gameover',
+        };
+        const active = map[phase] || 'lobby';
+        ['lobby', 'roleconfirm', 'night', 'day', 'gameover'].forEach((s) =>
+          $(s).classList.toggle('hidden', s !== active)
+        );
       }
 
       function escapeHtml(s) {

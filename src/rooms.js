@@ -5,19 +5,23 @@ const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no easily-confuse
 const ROOM_CODE_LENGTH = 4;
 const MAX_PLAYERS = 8;
 
-// Character classes available to each alignment. Players in the same game get
-// unique classes where possible (we only repeat once a side's pool runs out).
+// Character classes available to each alignment. Special (skilled) classes are
+// guaranteed first; any remaining players become plain citizens/cultists.
 const CLASSES = {
-  good: [
-    { id: 'emperor-knight', name: 'Knight of the Emperor' },
-    { id: 'inquisitor', name: 'Inquisitor' },
-    { id: 'court-wizard', name: 'Court Wizard' },
-  ],
-  evil: [
-    { id: 'fallen-knight', name: 'Fallen Knight' },
-    { id: 'succubus', name: 'Succubus' },
-  ],
+  good: {
+    emperorKnight: { id: 'emperor-knight', name: 'Knight of the Emperor' },
+    courtWizard: { id: 'court-wizard', name: 'Court Wizard' },
+    inquisitor: { id: 'inquisitor', name: 'Inquisitor' },
+    citizen: { id: 'citizen', name: 'Loyal Subject' },
+  },
+  evil: {
+    succubus: { id: 'succubus', name: 'Succubus' },
+    fallenKnight: { id: 'fallen-knight', name: 'Fallen Knight' },
+    cultist: { id: 'cultist', name: 'Cultist' },
+  },
 };
+
+const MAX_FALLEN_KNIGHTS = 2;
 
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
@@ -27,13 +31,34 @@ function shuffle(arr) {
   return arr;
 }
 
-// Hand out unique classes for one alignment. If there are more players than
-// available classes, the pool reshuffles and repeats (kept minimal).
+// Build the ordered class pool for one side, sized to `count` players.
+// Special roles come first (guaranteed when there are enough players), then the
+// remainder are filled with the side's plain class.
+function buildGoodPool(count) {
+  const pool = [];
+  if (count >= 1) pool.push(CLASSES.good.emperorKnight);
+  if (count >= 2) pool.push(CLASSES.good.courtWizard);
+  if (count >= 3) pool.push(CLASSES.good.inquisitor);
+  while (pool.length < count) pool.push(CLASSES.good.citizen);
+  return pool.slice(0, count);
+}
+
+function buildEvilPool(count) {
+  const pool = [];
+  if (count >= 1) pool.push(CLASSES.evil.succubus);
+  for (let i = 0; i < MAX_FALLEN_KNIGHTS && pool.length < count; i++) {
+    pool.push(CLASSES.evil.fallenKnight);
+  }
+  while (pool.length < count) pool.push(CLASSES.evil.cultist);
+  return pool.slice(0, count);
+}
+
+// Hand out classes for one alignment from a pre-sized pool (shuffled so the
+// assignment order is random).
 function dealClasses(players, pool) {
-  let bag = [];
-  players.forEach((p) => {
-    if (bag.length === 0) bag = shuffle([...pool]);
-    p.charClass = bag.pop();
+  const bag = shuffle([...pool]);
+  players.forEach((p, i) => {
+    p.charClass = bag[i] || pool[pool.length - 1];
   });
 }
 
@@ -85,6 +110,9 @@ export function createRoomStore() {
       role: null, // 'good' | 'evil' — assigned secretly when the game starts
       charClass: null, // { id, name } — character class, assigned with the role
       roleAck: false, // has the player confirmed (seen) their role?
+      alive: true, // killed players become spectators
+      nightAction: null, // { type, target } chosen during the current night
+      investigateResult: null, // inquisitor's private result for the last night
     };
     room.players.set(socketId, player);
     return { room, player };
@@ -101,7 +129,7 @@ export function createRoomStore() {
   }
 
   // Secretly assign a good/evil alignment to every player in the room, then
-  // hand each player a unique character class for their side. Returns the room.
+  // hand each player a character class for their side. Returns the room.
   function assignRoles(room) {
     const players = [...room.players.values()];
     const n = players.length;
@@ -113,13 +141,16 @@ export function createRoomStore() {
     shuffle(players);
     players.forEach((p, i) => {
       p.role = i < evilCount ? 'evil' : 'good';
+      p.alive = true;
+      p.nightAction = null;
+      p.investigateResult = null;
     });
 
-    // Deal classes per side so nobody in the same game overlaps (when possible).
+    // Deal classes per side: guaranteed special roles first, then fillers.
     const goodPlayers = players.filter((p) => p.role === 'good');
     const evilPlayers = players.filter((p) => p.role === 'evil');
-    dealClasses(goodPlayers, CLASSES.good);
-    dealClasses(evilPlayers, CLASSES.evil);
+    dealClasses(goodPlayers, buildGoodPool(goodPlayers.length));
+    dealClasses(evilPlayers, buildEvilPool(evilPlayers.length));
     return room;
   }
 
@@ -150,6 +181,7 @@ export function createRoomStore() {
       players: [...room.players.values()].map((p) => ({
         id: p.id,
         name: p.name,
+        alive: p.alive,
         hasChosen: p.choice !== null,
       })),
     };

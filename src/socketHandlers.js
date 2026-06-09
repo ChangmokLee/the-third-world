@@ -1,9 +1,24 @@
-// Wires up all realtime events between the TV host screen and phone controllers.
+// Wires up all realtime events between the TV host screen and phone controllers
+// for the social-deduction game loop (role reveal -> night -> day -> ...).
 import QRCode from 'qrcode';
+import {
+  startNight,
+  submitNightAction,
+  solvePuzzle,
+  allPuzzlesSolved,
+  puzzleProgress,
+  resolveNight,
+  startDay,
+  submitVote,
+  emperorExecute,
+  voteTally,
+  allVoted,
+  resolveDay,
+  checkWin,
+  nightActionFor,
+} from './game.js';
 
 function buildJoinUrl(socket, code) {
-  // Prefer the configured public URL (production); fall back to the request
-  // origin (works for local dev and when origin header is present).
   const base =
     (process.env.PUBLIC_URL || '').replace(/\/$/, '') ||
     socket.handshake.headers.origin ||
@@ -11,11 +26,176 @@ function buildJoinUrl(socket, code) {
   return `${base}/play?code=${code}`;
 }
 
+// Living players other than `selfId`, as { id, name } — the legal targets for
+// most night/day abilities.
+function targetsExcept(room, selfId) {
+  return [...room.players.values()]
+    .filter((p) => p.alive && p.id !== selfId)
+    .map((p) => ({ id: p.id, name: p.name }));
+}
+
+function publicPlayers(room) {
+  return [...room.players.values()].map((p) => ({
+    id: p.id,
+    name: p.name,
+    alive: p.alive,
+    charClass: p.alive ? null : p.charClass?.id || null, // reveal class on death
+    role: p.alive ? null : p.role, // reveal alignment on death
+  }));
+}
+
 export function registerSocketHandlers(io, rooms) {
+  // -------------------------------------------------------------------------
+  // Broadcast the night state: shared puzzle board to everyone, plus a private
+  // "your secret action" prompt to each living role-player.
+  // -------------------------------------------------------------------------
+  function broadcastNight(room) {
+    const pp = puzzleProgress(room);
+    io.to(room.code).emit('game:night', {
+      day: room.day,
+      players: publicPlayers(room),
+      puzzles: room.night.puzzles.map((p) => ({
+        id: p.id,
+        en: p.en,
+        ko: p.ko,
+        solved: p.solved,
+      })),
+      progress: pp,
+    });
+
+    for (const player of room.players.values()) {
+      if (!player.alive) {
+        io.to(player.id).emit('game:yourAction', { type: null });
+        continue;
+      }
+      const type = nightActionFor(player.charClass?.id);
+      io.to(player.id).emit('game:yourAction', {
+        type,
+        classId: player.charClass?.id || null,
+        targets: type ? targetsExcept(room, player.id) : [],
+      });
+    }
+  }
+
+  function broadcastPuzzleUpdate(room) {
+    io.to(room.code).emit('game:puzzleUpdate', {
+      puzzles: room.night.puzzles.map((p) => ({ id: p.id, solved: p.solved })),
+      progress: puzzleProgress(room),
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Resolve the night and move into day, OR end the game if someone has won.
+  // -------------------------------------------------------------------------
+  function endNight(room) {
+    const summary = resolveNight(room);
+
+    // Private result for the inquisitor.
+    for (const p of room.players.values()) {
+      if (p.investigateResult) {
+        io.to(p.id).emit('game:info', {
+          kind: 'investigate',
+          targetName: p.investigateResult.targetName,
+          isEvil: p.investigateResult.isEvil,
+        });
+      }
+    }
+
+    const winner = checkWin(room);
+    if (winner) return endGame(room, winner);
+
+    // Build the day report (deaths, save, succubus reveal).
+    const report = {
+      day: room.day,
+      deaths: summary.deaths.map((d) => d.name),
+      saved: summary.saved,
+      revealKnightName: null,
+    };
+    if (summary.seduceRevealKnightId) {
+      const knight = room.players.get(summary.seduceRevealKnightId);
+      if (knight) report.revealKnightName = knight.name;
+    }
+
+    startDay(room);
+    io.to(room.code).emit('game:phase', { phase: 'day' });
+    broadcastDay(room, report);
+  }
+
+  // -------------------------------------------------------------------------
+  // Broadcast the day: the night report + voting board, plus the Emperor's
+  // Knight's private "summary execution" option.
+  // -------------------------------------------------------------------------
+  function broadcastDay(room, report) {
+    io.to(room.code).emit('game:day', {
+      day: room.day,
+      players: publicPlayers(room),
+      report: report || room.lastDayReport || null,
+      tally: voteTally(room),
+    });
+    if (report) room.lastDayReport = report;
+
+    for (const player of room.players.values()) {
+      const isKnight =
+        player.alive && player.charClass?.id === 'emperor-knight';
+      io.to(player.id).emit('game:yourDayAction', {
+        canVote: player.alive,
+        canExecute: isKnight && !room.dayState.emperorUsed,
+        targets: player.alive ? targetsExcept(room, player.id) : [],
+      });
+    }
+  }
+
+  function broadcastVoteUpdate(room) {
+    const voted = [...room.dayState.votes.keys()];
+    io.to(room.code).emit('game:voteUpdate', {
+      tally: voteTally(room),
+      voted,
+      total: [...room.players.values()].filter((p) => p.alive).length,
+    });
+  }
+
+  function endDay(room) {
+    if (room.phase !== 'day' || room.dayState?.resolved) return;
+    const summary = resolveDay(room);
+    const report = {
+      executedName: summary.executed?.name || null,
+      byEmperor: summary.byEmperor,
+      tie: summary.tie,
+    };
+    io.to(room.code).emit('game:dayResult', {
+      report,
+      players: publicPlayers(room),
+    });
+
+    const winner = checkWin(room);
+    // Give everyone a beat to read the verdict before the next phase begins.
+    setTimeout(() => {
+      if (!rooms.getRoom(room.code)) return; // room may have closed
+      if (winner) return endGame(room, winner);
+      startNight(room);
+      io.to(room.code).emit('game:phase', { phase: 'night' });
+      broadcastNight(room);
+    }, 4500);
+  }
+
+  function endGame(room, winner) {
+    room.phase = 'gameover';
+    room.winner = winner;
+    io.to(room.code).emit('game:over', {
+      winner,
+      roster: [...room.players.values()].map((p) => ({
+        name: p.name,
+        role: p.role,
+        charClass: p.charClass?.id || null,
+        alive: p.alive,
+      })),
+    });
+  }
+
   io.on('connection', (socket) => {
-    // -----------------------------------------------------------------------
+    // ----------------------------------------------------------------------
     // HOST (TV) creates a room
-    // -----------------------------------------------------------------------
+    // ----------------------------------------------------------------------
     socket.on('host:create', async () => {
       const passportUser = socket.request.session?.passport?.user ?? null;
       const room = rooms.createRoom(socket.id, passportUser);
@@ -28,15 +208,14 @@ export function registerSocketHandlers(io, rooms) {
       try {
         qr = await QRCode.toDataURL(joinUrl, { margin: 1, width: 320 });
       } catch {
-        qr = null; // QR is a nice-to-have; the room code still works.
+        qr = null;
       }
-
       socket.emit('host:created', { ...rooms.publicState(room), joinUrl, qr });
     });
 
-    // -----------------------------------------------------------------------
+    // ----------------------------------------------------------------------
     // PLAYER (phone) joins a room
-    // -----------------------------------------------------------------------
+    // ----------------------------------------------------------------------
     socket.on('player:join', ({ code, name }) => {
       const result = rooms.addPlayer(code, socket.id, name);
       if (result.error) {
@@ -49,34 +228,26 @@ export function registerSocketHandlers(io, rooms) {
       socket.data.role = 'player';
 
       socket.emit('player:joined', { code: room.code, name: player.name });
-      // Tell the TV (and everyone) the updated lobby.
       io.to(room.code).emit('room:update', rooms.publicState(room));
     });
 
-    // -----------------------------------------------------------------------
-    // HOST starts the game
-    // -----------------------------------------------------------------------
+    // ----------------------------------------------------------------------
+    // HOST starts the game → assign roles, reveal privately, gate on roleAck
+    // ----------------------------------------------------------------------
     socket.on('host:start', () => {
       const room = rooms.getRoom(socket.data.roomCode);
       if (!room || room.hostSocketId !== socket.id) return;
-      room.phase = 'playing';
-      for (const p of room.players.values()) p.choice = null;
 
-      // Assign good/evil alignments only once per game. They stay fixed for the
-      // rest of this room, so replaying "Next round" keeps everyone's side.
-      const alreadyAssigned = [...room.players.values()].some((p) => p.role);
-      if (!alreadyAssigned) rooms.assignRoles(room);
-
-      // Everyone must re-confirm they have seen their role before the choice
-      // screen opens on their phone.
+      rooms.assignRoles(room);
+      room.phase = 'role';
+      room.day = 0;
+      room.winner = null;
       for (const p of room.players.values()) p.roleAck = false;
 
       for (const p of room.players.values()) {
         io.to(p.id).emit('game:role', { role: p.role, charClass: p.charClass });
       }
-
-      io.to(room.code).emit('game:phase', { phase: 'playing' });
-      // The TV only learns how many of each side there are, never who.
+      io.to(room.code).emit('game:phase', { phase: 'role' });
       io.to(room.code).emit('game:roleCounts', rooms.roleCounts(room));
       io.to(room.code).emit('game:roleAcks', {
         confirmed: 0,
@@ -85,9 +256,9 @@ export function registerSocketHandlers(io, rooms) {
       io.to(room.code).emit('room:update', rooms.publicState(room));
     });
 
-    // -----------------------------------------------------------------------
+    // ----------------------------------------------------------------------
     // PLAYER confirms they have seen their secret role
-    // -----------------------------------------------------------------------
+    // ----------------------------------------------------------------------
     socket.on('player:roleAck', () => {
       const room = rooms.getRoom(socket.data.roomCode);
       if (!room) return;
@@ -101,32 +272,121 @@ export function registerSocketHandlers(io, rooms) {
       });
     });
 
-    // -----------------------------------------------------------------------
-    // PLAYER submits a choice (story branch / vote)
-    // -----------------------------------------------------------------------
-    socket.on('player:choice', ({ choice }) => {
+    // ----------------------------------------------------------------------
+    // HOST begins the first night (after everyone confirmed their role)
+    // ----------------------------------------------------------------------
+    socket.on('host:beginNight', () => {
       const room = rooms.getRoom(socket.data.roomCode);
-      if (!room || room.phase !== 'playing') return;
+      if (!room || room.hostSocketId !== socket.id) return;
+      if (room.phase !== 'role') return;
+      startNight(room);
+      io.to(room.code).emit('game:phase', { phase: 'night' });
+      broadcastNight(room);
+    });
+
+    // ----------------------------------------------------------------------
+    // NIGHT: a player solves a puzzle (collaborative cover task)
+    // ----------------------------------------------------------------------
+    socket.on('player:solvePuzzle', ({ puzzleId, answer }) => {
+      const room = rooms.getRoom(socket.data.roomCode);
+      if (!room) return;
       const player = room.players.get(socket.id);
-      if (!player) return;
-      player.choice = choice;
-
-      io.to(room.code).emit('room:update', rooms.publicState(room));
-
-      // When everyone has chosen, tally and tell the host.
-      const all = [...room.players.values()];
-      if (all.length > 0 && all.every((p) => p.choice !== null)) {
-        const tally = {};
-        for (const p of all) tally[p.choice] = (tally[p.choice] || 0) + 1;
-        room.phase = 'results';
-        io.to(room.code).emit('game:results', { tally });
-        io.to(room.code).emit('game:phase', { phase: 'results' });
+      if (!player || !player.alive) return;
+      const result = solvePuzzle(room, puzzleId, answer);
+      if (result.error === 'WRONG') {
+        socket.emit('player:puzzleWrong', { puzzleId });
+        return;
+      }
+      if (!result.ok) return;
+      broadcastPuzzleUpdate(room);
+      if (allPuzzlesSolved(room)) {
+        io.to(room.code).emit('game:phase', { phase: 'nightResolving' });
+        endNight(room);
       }
     });
 
-    // -----------------------------------------------------------------------
+    // ----------------------------------------------------------------------
+    // NIGHT: a role-player secretly submits their action
+    // ----------------------------------------------------------------------
+    socket.on('player:nightAction', ({ target }) => {
+      const room = rooms.getRoom(socket.data.roomCode);
+      if (!room) return;
+      const result = submitNightAction(room, socket.id, target);
+      if (result.error) {
+        socket.emit('player:actionError', { code: result.error });
+        return;
+      }
+      socket.emit('player:actionOk', { target });
+    });
+
+    // ----------------------------------------------------------------------
+    // DAY: a player casts their execution vote
+    // ----------------------------------------------------------------------
+    socket.on('player:vote', ({ target }) => {
+      const room = rooms.getRoom(socket.data.roomCode);
+      if (!room) return;
+      const result = submitVote(room, socket.id, target);
+      if (result.error) {
+        socket.emit('player:actionError', { code: result.error });
+        return;
+      }
+      socket.emit('player:voteOk', { target });
+      broadcastVoteUpdate(room);
+      if (allVoted(room)) endDay(room);
+    });
+
+    // ----------------------------------------------------------------------
+    // DAY: the Emperor's Knight invokes a summary execution (overrides vote)
+    // ----------------------------------------------------------------------
+    socket.on('player:emperorExecute', ({ target }) => {
+      const room = rooms.getRoom(socket.data.roomCode);
+      if (!room) return;
+      const result = emperorExecute(room, socket.id, target);
+      if (result.error) {
+        socket.emit('player:actionError', { code: result.error });
+        return;
+      }
+      endDay(room);
+    });
+
+    // ----------------------------------------------------------------------
+    // HOST may force the current phase forward (safety valve)
+    // ----------------------------------------------------------------------
+    socket.on('host:advance', () => {
+      const room = rooms.getRoom(socket.data.roomCode);
+      if (!room || room.hostSocketId !== socket.id) return;
+      if (room.phase === 'night') {
+        io.to(room.code).emit('game:phase', { phase: 'nightResolving' });
+        endNight(room);
+      } else if (room.phase === 'day') {
+        endDay(room);
+      }
+    });
+
+    // ----------------------------------------------------------------------
+    // HOST starts a brand new game (back to lobby with same players)
+    // ----------------------------------------------------------------------
+    socket.on('host:reset', () => {
+      const room = rooms.getRoom(socket.data.roomCode);
+      if (!room || room.hostSocketId !== socket.id) return;
+      room.phase = 'lobby';
+      room.winner = null;
+      room.day = 0;
+      for (const p of room.players.values()) {
+        p.role = null;
+        p.charClass = null;
+        p.roleAck = false;
+        p.alive = true;
+        p.nightAction = null;
+        p.investigateResult = null;
+      }
+      io.to(room.code).emit('game:phase', { phase: 'lobby' });
+      io.to(room.code).emit('room:update', rooms.publicState(room));
+    });
+
+    // ----------------------------------------------------------------------
     // Disconnects
-    // -----------------------------------------------------------------------
+    // ----------------------------------------------------------------------
     socket.on('disconnect', () => {
       if (socket.data.role === 'host') {
         const room = rooms.removeRoomByHost(socket.id);

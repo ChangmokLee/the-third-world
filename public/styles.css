@@ -421,3 +421,153 @@ input::placeholder { color: var(--muted); }
   background: rgba(255, 255, 255, 0.18);
   color: #fff;
 }
+
+/* ============================================================= */
+/* Social-deduction game: night / day / actions / results        */
+/* ============================================================= */
+
+.player-pill.dead { opacity: 0.45; text-decoration: line-through; }
+.player-pill.dead .dot { background: var(--danger); }
+
+.night-title, .day-title { font-size: clamp(1.8rem, 6vw, 3.2rem); }
+
+/* ---- Puzzle board (TV) ---- */
+.puzzle-board {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 640px;
+  margin: 18px auto 0;
+}
+.puzzle-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 22px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: clamp(1.1rem, 3vw, 1.6rem);
+  font-weight: 700;
+}
+.puzzle-card.solved {
+  background: rgba(107, 255, 176, 0.12);
+  border-color: rgba(107, 255, 176, 0.5);
+}
+.puzzle-card .puzzle-state { font-size: 1.4em; color: var(--good); }
+
+/* ---- Puzzle rows (phone) ---- */
+.puzzle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.puzzle-row:last-child { border-bottom: none; }
+.puzzle-row .puzzle-q { font-weight: 700; font-size: 1.05rem; text-align: left; }
+.puzzle-row.solved { opacity: 0.6; }
+.puzzle-row.solved .puzzle-state { color: var(--good); font-size: 1.3rem; }
+.puzzle-input-wrap { display: inline-flex; gap: 6px; align-items: center; }
+.puzzle-input {
+  width: 84px;
+  padding: 8px 10px;
+  margin: 0;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 1.05rem;
+  text-align: center;
+}
+.puzzle-go {
+  border: none;
+  border-radius: 10px;
+  padding: 8px 14px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  font-family: inherit;
+  color: #1a1430;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  cursor: pointer;
+}
+.puzzle-input.shake { animation: shake 0.4s; border-color: var(--danger); }
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+
+/* ---- Target lists (night actions + voting) ---- */
+.target-list { display: grid; gap: 8px; }
+.target-btn {
+  padding: 13px 16px;
+  border-radius: 12px;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.12s ease, background 0.12s ease;
+}
+.target-btn.selected { border-color: var(--gold); background: rgba(255, 207, 107, 0.16); }
+
+.action-kicker {
+  font-size: 0.8rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin: 0 0 8px;
+}
+
+.btn.danger {
+  color: #fff;
+  background: linear-gradient(90deg, #c0392b, #ff6b6b);
+}
+
+/* ---- Day report (TV) ---- */
+.day-report {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  margin: 6px 0 18px;
+}
+.report-line {
+  font-size: clamp(1.1rem, 3vw, 1.5rem);
+  font-weight: 700;
+  margin: 0;
+}
+.report-line.bad { color: #ff8a8a; }
+.report-line.good { color: #7fe3a0; }
+.report-line.reveal { color: var(--gold); }
+
+/* ---- Final roster (TV) ---- */
+.roster {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  max-width: 520px;
+  margin: 18px auto 0;
+}
+.roster-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1.15rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.roster-row.good { background: rgba(107, 255, 176, 0.1); }
+.roster-row.evil { background: rgba(255, 110, 110, 0.12); }
+.roster-class { color: var(--muted); font-size: 0.95rem; }
+

@@ -45,23 +45,62 @@
       <p id="roleAckMsg" class="muted" style="margin-top: 12px"></p>
     </section>
 
-    <!-- CHOICE -->
-    <section id="choosing" class="hidden">
-      <h2 class="brand" style="font-size: 1.8rem">Decision Time</h2>
+    <!-- NIGHT -->
+    <section id="night" class="hidden">
+      <h2 class="brand" style="font-size: 1.7rem" id="nightHeading">🌙 Night</h2>
+
+      <!-- Secret role action -->
+      <div id="actionPanel" class="panel hidden" style="margin-bottom: 14px">
+        <p class="action-kicker" id="actionKicker"></p>
+        <p id="actionPrompt" style="margin-bottom: 10px"></p>
+        <div id="actionTargets" class="target-list"></div>
+        <button id="actionBtn" class="btn" style="margin-top: 12px" disabled data-i18n="act.confirm">Confirm</button>
+        <p id="actionMsg" class="muted" style="margin-top: 10px"></p>
+      </div>
+
+      <!-- Collaborative puzzles (cover task) -->
       <div class="panel">
-        <p data-i18n="choose.prompt">Which path will you take?</p>
-        <div class="choices">
-          <button class="choice-btn" data-choice="left" data-i18n="choose.left">⬅ Left path</button>
-          <button class="choice-btn" data-choice="right" data-i18n="choose.right">Right path ➡</button>
-        </div>
-        <p id="choiceMsg" class="muted" style="margin-top: 16px"></p>
+        <p class="muted" data-i18n="night.puzzleHint">Solve every trial to let the night pass.</p>
+        <div id="puzzleList"></div>
+      </div>
+
+      <div id="nightDead" class="panel hidden" style="margin-top: 12px">
+        <p class="muted" data-i18n="dead.spectate">You have fallen. Watch how the tale unfolds…</p>
       </div>
     </section>
 
-    <!-- DONE -->
-    <section id="done" class="hidden">
-      <h2 class="brand" data-i18n="done.title">Choice locked in</h2>
-      <p class="subtitle" data-i18n="done.subtitle">Check the TV screen!</p>
+    <!-- DAY -->
+    <section id="day" class="hidden">
+      <h2 class="brand" style="font-size: 1.7rem" id="dayHeading">☀ Dawn</h2>
+
+      <div id="infoPanel" class="panel hidden" style="margin-bottom: 14px">
+        <p id="infoText"></p>
+      </div>
+
+      <div id="emperorPanel" class="panel hidden" style="margin-bottom: 14px">
+        <p class="action-kicker" data-i18n="act.emperorKicker">By Command of the Emperor</p>
+        <p data-i18n="act.emperorPrompt" style="margin-bottom: 10px">Override the vote and execute one suspect at once.</p>
+        <div id="emperorTargets" class="target-list"></div>
+        <button id="emperorBtn" class="btn danger" style="margin-top: 12px" disabled data-i18n="act.emperorBtn">Summary execution</button>
+      </div>
+
+      <div id="votePanel" class="panel">
+        <p data-i18n="vote.prompt" style="margin-bottom: 10px">Who shall face execution?</p>
+        <div id="voteTargets" class="target-list"></div>
+        <button id="voteSkipBtn" class="btn secondary" style="margin-top: 10px" data-i18n="vote.skip">Abstain</button>
+        <p id="voteMsg" class="muted" style="margin-top: 10px"></p>
+      </div>
+
+      <div id="dayDead" class="panel hidden">
+        <p class="muted" data-i18n="dead.spectate">You have fallen. Watch how the tale unfolds…</p>
+      </div>
+    </section>
+
+    <!-- GAME OVER -->
+    <section id="over" class="hidden">
+      <h2 class="brand" id="overTitle"></h2>
+      <p class="subtitle" id="overResult"></p>
+      <p class="muted" data-i18n="over.checkTv">Check the TV for the full reveal!</p>
     </section>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -76,23 +115,16 @@
         NAME_REQUIRED: 'join.errNameRequired',
       };
 
-      // Prefill code from ?code= if present (QR links include it).
       const params = new URLSearchParams(location.search);
       const codeFromQr = (params.get('code') || '').toUpperCase();
       if (codeFromQr) $('codeInput').value = codeFromQr;
 
-      // The player is logged in (route is protected); prefill their Google name.
-      // When they arrived via a QR link (?code=...), join the room automatically
-      // so they don't have to re-enter anything after signing in.
       fetch('/api/me')
         .then((r) => r.json())
         .then((data) => {
           const myName = data.user?.name ? data.user.name.slice(0, 16) : '';
           if (myName && !$('nameInput').value) $('nameInput').value = myName;
-
-          if (codeFromQr && myName) {
-            socket.emit('player:join', { code: codeFromQr, name: myName });
-          }
+          if (codeFromQr && myName) socket.emit('player:join', { code: codeFromQr, name: myName });
         })
         .catch(() => {});
 
@@ -114,19 +146,25 @@
       socket.on('player:error', ({ code }) => {
         $('joinError').textContent = t(ERRORS[code] || 'join.errGeneric');
       });
-
       socket.on('player:joined', ({ code, name }) => {
         $('roomLabel').textContent = code;
         $('meLabel').textContent = name;
         show('waiting');
       });
 
-      // Secret alignment, revealed only on this player's phone.
+      // ----- state -----
       let myRole = null;
       let myClass = null;
       let roleConfirmed = false;
       let currentPhase = 'lobby';
+      let amAlive = true;
+      let myAction = null; // { type, classId, targets }
+      let pickedActionTarget = null;
+      let pickedEmperorTarget = null;
+      let puzzles = [];
+      let myDayAction = null;
 
+      // ===== ROLE CARD =====
       function renderRoleCard() {
         if (!myRole) return;
         const card = $('roleCard');
@@ -138,60 +176,210 @@
           card.classList.remove('good');
           $('roleKicker').textContent = t('role.evilKicker');
           $('roleTitle').textContent = className || t('role.evilFallback');
-          $('roleOrders').textContent = t('role.evilOrders');
+          $('roleOrders').textContent = classId ? t('skill.' + classId) : t('role.evilOrders');
         } else {
           card.style.backgroundImage = classId ? `url('/${classId}.png')` : "url('/good-team.png')";
           card.classList.add('good');
           card.classList.remove('evil');
           $('roleKicker').textContent = t('role.goodKicker');
           $('roleTitle').textContent = className || t('role.goodFallback');
-          $('roleOrders').textContent = t('role.goodOrders');
+          $('roleOrders').textContent = classId ? t('skill.' + classId) : t('role.goodOrders');
         }
-        // Confirm button + waiting message follow the language.
         if (!roleConfirmed) $('roleConfirmBtn').textContent = t('role.confirm');
         if (roleConfirmed) $('roleAckMsg').textContent = t('role.waiting');
       }
-
-      // Re-render dynamic strings when the shared language toggle changes.
-      window.addEventListener('ttw:languagechange', () => {
-        renderRoleCard();
-        if (!$('choiceMsg').textContent) return;
-        $('choiceMsg').textContent = t('choose.sent');
-      });
 
       socket.on('game:role', ({ role, charClass }) => {
         myRole = role;
         myClass = charClass || null;
         roleConfirmed = false;
+        amAlive = true;
         $('roleConfirmBtn').disabled = false;
         $('roleAckMsg').textContent = '';
         renderRoleCard();
         show('role');
       });
 
-      // The player must confirm before their choice screen opens.
       $('roleConfirmBtn').addEventListener('click', () => {
         if (roleConfirmed) return;
         roleConfirmed = true;
         socket.emit('player:roleAck');
         $('roleConfirmBtn').disabled = true;
         $('roleAckMsg').textContent = t('role.waiting');
-        if (currentPhase === 'playing') show('choosing');
       });
 
+      // ===== PHASE SWITCH =====
       socket.on('game:phase', ({ phase }) => {
         currentPhase = phase;
-        if (phase === 'playing') {
-          resetChoice();
-          // Hold on the role card until this player taps confirm.
-          if (myRole && !roleConfirmed) {
-            show('role');
-          } else {
-            show('choosing');
-          }
-        } else if (phase === 'results') {
-          show('done');
+        if (phase === 'role') {
+          if (myRole && !roleConfirmed) show('role');
+        } else if (phase === 'night' || phase === 'nightResolving') {
+          show('night');
+        } else if (phase === 'day') {
+          show('day');
+        } else if (phase === 'lobby') {
+          show('waiting');
         }
+      });
+
+      // ===== NIGHT: puzzles =====
+      socket.on('game:night', (data) => {
+        puzzles = data.puzzles || [];
+        const me = (data.players || []).find((p) => p.id === socket.id);
+        amAlive = me ? me.alive : amAlive;
+        renderPuzzles();
+        $('nightDead').classList.toggle('hidden', amAlive);
+        show('night');
+      });
+      socket.on('game:puzzleUpdate', (data) => {
+        const map = {};
+        data.puzzles.forEach((p) => (map[p.id] = p.solved));
+        puzzles.forEach((p) => (p.solved = map[p.id] ?? p.solved));
+        renderPuzzles();
+      });
+      socket.on('player:puzzleWrong', ({ puzzleId }) => {
+        const input = document.querySelector(`[data-puzzle-input="${puzzleId}"]`);
+        if (input) {
+          input.classList.add('shake');
+          setTimeout(() => input.classList.remove('shake'), 500);
+        }
+      });
+
+      function renderPuzzles() {
+        const lang = I18N.getLang();
+        const wrap = $('puzzleList');
+        wrap.innerHTML = '';
+        puzzles.forEach((p) => {
+          const row = document.createElement('div');
+          row.className = 'puzzle-row' + (p.solved ? ' solved' : '');
+          if (p.solved) {
+            row.innerHTML = `<span class="puzzle-q">${escapeHtml(lang === 'ko' ? p.ko : p.en)}</span><span class="puzzle-state">✓</span>`;
+          } else {
+            row.innerHTML =
+              `<span class="puzzle-q">${escapeHtml(lang === 'ko' ? p.ko : p.en)}</span>` +
+              `<span class="puzzle-input-wrap">` +
+              `<input class="puzzle-input" inputmode="numeric" data-puzzle-input="${p.id}" ${amAlive ? '' : 'disabled'} />` +
+              `<button class="puzzle-go" data-puzzle-go="${p.id}" ${amAlive ? '' : 'disabled'}>→</button>` +
+              `</span>`;
+          }
+          wrap.appendChild(row);
+        });
+        wrap.querySelectorAll('[data-puzzle-go]').forEach((btn) => {
+          btn.addEventListener('click', () => submitPuzzle(btn.dataset.puzzleGo));
+        });
+        wrap.querySelectorAll('[data-puzzle-input]').forEach((inp) => {
+          inp.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') submitPuzzle(inp.dataset.puzzleInput);
+          });
+        });
+      }
+      function submitPuzzle(id) {
+        const input = document.querySelector(`[data-puzzle-input="${id}"]`);
+        if (!input) return;
+        const answer = input.value.trim();
+        if (!answer) return;
+        socket.emit('player:solvePuzzle', { puzzleId: Number(id), answer });
+      }
+
+      // ===== NIGHT: secret action =====
+      socket.on('game:yourAction', (data) => {
+        myAction = data;
+        pickedActionTarget = null;
+        renderActionPanel();
+      });
+      function renderActionPanel() {
+        const panel = $('actionPanel');
+        if (!myAction || !myAction.type || !amAlive) {
+          panel.classList.add('hidden');
+          return;
+        }
+        panel.classList.remove('hidden');
+        $('actionKicker').textContent = t('act.' + myAction.type + 'Kicker');
+        $('actionPrompt').textContent = t('act.' + myAction.type + 'Prompt');
+        renderTargets('actionTargets', myAction.targets, (id) => {
+          pickedActionTarget = id;
+          $('actionBtn').disabled = false;
+        });
+        $('actionBtn').textContent = t('act.confirm');
+        $('actionMsg').textContent = '';
+        $('actionBtn').disabled = true;
+      }
+      $('actionBtn').addEventListener('click', () => {
+        if (!pickedActionTarget) return;
+        socket.emit('player:nightAction', { target: pickedActionTarget });
+      });
+      socket.on('player:actionOk', () => {
+        $('actionMsg').textContent = t('act.sent');
+      });
+      socket.on('player:actionError', () => {
+        $('actionMsg').textContent = t('act.failed');
+      });
+
+      // ===== DAY =====
+      socket.on('game:day', (data) => {
+        const me = (data.players || []).find((p) => p.id === socket.id);
+        amAlive = me ? me.alive : amAlive;
+        $('infoPanel').classList.add('hidden');
+        $('voteMsg').textContent = '';
+        show('day');
+      });
+      socket.on('game:yourDayAction', (data) => {
+        myDayAction = data;
+        pickedEmperorTarget = null;
+        renderDayPanels();
+      });
+      function renderDayPanels() {
+        if (!myDayAction) return;
+        const dead = !myDayAction.canVote;
+        $('dayDead').classList.toggle('hidden', !dead);
+        $('votePanel').classList.toggle('hidden', dead);
+        $('emperorPanel').classList.toggle('hidden', !myDayAction.canExecute);
+
+        if (myDayAction.canVote) {
+          renderTargets('voteTargets', myDayAction.targets, (id) => {
+            socket.emit('player:vote', { target: id });
+          });
+        }
+        if (myDayAction.canExecute) {
+          renderTargets('emperorTargets', myDayAction.targets, (id) => {
+            pickedEmperorTarget = id;
+            $('emperorBtn').disabled = false;
+          });
+          $('emperorBtn').disabled = true;
+        }
+      }
+      $('voteSkipBtn').addEventListener('click', () => {
+        socket.emit('player:vote', { target: 'skip' });
+      });
+      $('emperorBtn').addEventListener('click', () => {
+        if (!pickedEmperorTarget) return;
+        socket.emit('player:emperorExecute', { target: pickedEmperorTarget });
+      });
+      socket.on('player:voteOk', () => {
+        $('voteMsg').textContent = t('vote.sent');
+      });
+      socket.on('game:info', (data) => {
+        if (data.kind === 'investigate') {
+          $('infoPanel').classList.remove('hidden');
+          $('infoText').textContent = data.isEvil
+            ? t('info.guilty', { name: data.targetName })
+            : t('info.innocent', { name: data.targetName });
+        }
+      });
+      socket.on('game:dayResult', (data) => {
+        const me = (data.players || []).find((p) => p.id === socket.id);
+        if (me) amAlive = me.alive;
+      });
+
+      // ===== GAME OVER =====
+      socket.on('game:over', (data) => {
+        const iWon =
+          (data.winner === 'good' && myRole === 'good') ||
+          (data.winner === 'evil' && myRole === 'evil');
+        $('overTitle').textContent = data.winner === 'good' ? t('over.goodWins') : t('over.evilWins');
+        $('overTitle').style.color = data.winner === 'good' ? '#7fe3a0' : '#ff8a8a';
+        $('overResult').textContent = iWon ? t('over.youWon') : t('over.youLost');
+        show('over');
       });
 
       socket.on('room:closed', () => {
@@ -199,23 +387,39 @@
         location.href = '/';
       });
 
-      document.querySelectorAll('.choice-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          document.querySelectorAll('.choice-btn').forEach((b) => b.classList.remove('selected'));
-          btn.classList.add('selected');
-          socket.emit('player:choice', { choice: btn.dataset.choice });
-          $('choiceMsg').textContent = t('choose.sent');
-        });
+      // ===== language re-render =====
+      window.addEventListener('ttw:languagechange', () => {
+        renderRoleCard();
+        renderPuzzles();
+        renderActionPanel();
+        renderDayPanels();
       });
 
-      function resetChoice() {
-        document.querySelectorAll('.choice-btn').forEach((b) => b.classList.remove('selected'));
-        $('choiceMsg').textContent = '';
+      // ===== helpers =====
+      function renderTargets(containerId, targets, onPick) {
+        const wrap = $(containerId);
+        wrap.innerHTML = '';
+        (targets || []).forEach((tgt) => {
+          const btn = document.createElement('button');
+          btn.className = 'target-btn';
+          btn.textContent = tgt.name;
+          btn.addEventListener('click', () => {
+            wrap.querySelectorAll('.target-btn').forEach((b) => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            onPick(tgt.id);
+          });
+          wrap.appendChild(btn);
+        });
       }
 
       function show(id) {
-        ['join', 'waiting', 'role', 'choosing', 'done'].forEach((s) =>
+        ['join', 'waiting', 'role', 'night', 'day', 'over'].forEach((s) =>
           $(s).classList.toggle('hidden', s !== id)
+        );
+      }
+      function escapeHtml(s) {
+        return String(s).replace(/[&<>"']/g, (c) =>
+          ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
         );
       }
     </script>

@@ -81,6 +81,76 @@
       'class.court-wizard': 'Court Wizard',
       'class.fallen-knight': 'Fallen Knight',
       'class.succubus': 'Succubus',
+      'class.citizen': 'Loyal Subject',
+      'class.cultist': 'Cultist',
+
+      // --- Class skills (shown on the role card) ---
+      'skill.emperor-knight': 'By Command of the Emperor: each day you may override the vote and execute one suspect on the spot.',
+      'skill.court-wizard': 'Absolute Barrier: each night, shield one soul from the Cult’s blade.',
+      'skill.inquisitor': 'Each night, divine whether one person belongs to the Cult.',
+      'skill.fallen-knight': 'Assassinate: each night, the fallen strike down one of the chosen.',
+      'skill.succubus': 'Seduction: choose a target at night — if it is the Emperor’s Knight, expose them at dawn.',
+      'skill.citizen': 'You bear no special power — only your wits and your voice. Root out the Cult.',
+      'skill.cultist': 'You serve the Cult in shadow. Blend in and ensure none return.',
+
+      // --- Host: game phases ---
+      'host.startNeed3': 'Start game (need 3+ players)',
+      'host.fatesTitle': 'Fates are sealed',
+      'host.confirmHint': 'Each player confirms their secret role on their phone.',
+      'host.beginNight': 'Let night fall',
+      'host.nightHint': 'Solve the trials together. In the dark, some pursue other ends…',
+      'host.nightN': '🌙 Night {n}',
+      'host.puzzleProgress': 'Trials solved: {solved}/{total}',
+      'host.forceDawn': 'Force dawn',
+      'host.dayN': '☀ Day {n}',
+      'host.voteHint': 'Debate, then vote on your phones to execute one suspect.',
+      'host.voteProgress': 'Votes cast: {voted}/{total}',
+      'host.forceVote': 'Force the verdict',
+      'host.nightDeath': '🗡 By night, {names} was slain.',
+      'host.peacefulNight': '☼ The night passed without bloodshed.',
+      'host.someoneSaved': '🛡 A blade was turned aside by the wizard’s ward.',
+      'host.knightRevealed': '💋 Seduction reveals it: {name} is the Knight of the Emperor!',
+      'host.noExecution': 'No one was executed.',
+      'host.executed': '⚖ The people have spoken — {name} is executed.',
+      'host.emperorExecuted': '👑 By command of the Emperor, {name} is executed at once.',
+      'host.voteTie': 'The vote was tied — no one is executed.',
+      'host.goodWins': 'The Empire Prevails',
+      'host.evilWins': 'The Cult Triumphs',
+      'host.newGame': 'New game',
+
+      // --- Controller: night actions ---
+      'act.confirm': 'Confirm',
+      'act.sent': 'Your deed is done in the dark…',
+      'act.failed': 'That action failed.',
+      'act.protectKicker': 'Absolute Barrier',
+      'act.protectPrompt': 'Whom do you shield from the Cult tonight?',
+      'act.investigateKicker': 'Divination',
+      'act.investigatePrompt': 'Whose allegiance will you uncover tonight?',
+      'act.assassinateKicker': 'Assassination',
+      'act.assassinatePrompt': 'Who falls to your blade tonight?',
+      'act.seduceKicker': 'Seduction',
+      'act.seducePrompt': 'Seduce one soul — if they are the Emperor’s Knight, they are exposed at dawn.',
+      'act.emperorKicker': 'By Command of the Emperor',
+      'act.emperorPrompt': 'Override the vote and execute one suspect at once.',
+      'act.emperorBtn': 'Summary execution',
+
+      // --- Controller: night puzzles / spectator ---
+      'night.puzzleHint': 'Solve every trial to let the night pass.',
+      'dead.spectate': 'You have fallen. Watch how the tale unfolds…',
+
+      // --- Controller: day vote ---
+      'vote.prompt': 'Who shall face execution?',
+      'vote.skip': 'Abstain',
+      'vote.sent': 'Your vote is cast.',
+      'info.guilty': '🔥 Your divination burns true: {name} serves the Cult.',
+      'info.innocent': '✨ Your divination is calm: {name} is no cultist.',
+
+      // --- Controller: game over ---
+      'over.checkTv': 'Check the TV for the full reveal!',
+      'over.goodWins': 'The Empire Prevails',
+      'over.evilWins': 'The Cult Triumphs',
+      'over.youWon': 'Victory is yours.',
+      'over.youLost': 'Your cause has fallen.',
     },
 
     ko: {
@@ -156,6 +226,76 @@
       'class.court-wizard': '궁정 마법사',
       'class.fallen-knight': '타락한 기사',
       'class.succubus': '서큐버스',
+      'class.citizen': '충성스러운 백성',
+      'class.cultist': '교단원',
+
+      // --- 직업 스킬 (역할 카드에 표시) ---
+      'skill.emperor-knight': '황제의 이름으로: 매일 낮, 투표 결과를 무시하고 한 명을 즉결 처형할 수 있다.',
+      'skill.court-wizard': '절대 결계: 매일 밤, 한 명을 타락한 교단의 칼날로부터 지킨다.',
+      'skill.inquisitor': '매일 밤, 한 명이 교단인지 아닌지 확인할 수 있다.',
+      'skill.fallen-knight': '암살: 매일 밤, 선택받은 자 한 명을 처형한다.',
+      'skill.succubus': '유혹: 밤에 한 명을 고른다 — 그가 황제의 기사라면 새벽에 정체가 드러난다.',
+      'skill.citizen': '특별한 힘은 없다 — 오직 너의 통찰과 목소리뿐. 교단을 색출하라.',
+      'skill.cultist': '그대는 그림자 속에서 교단을 섬긴다. 섞여들어 누구도 돌아가지 못하게 하라.',
+
+      // --- 호스트: 게임 단계 ---
+      'host.startNeed3': '게임 시작 (3명 이상 필요)',
+      'host.fatesTitle': '운명이 정해졌다',
+      'host.confirmHint': '각자 휴대폰에서 자신의 비밀 역할을 확인하세요.',
+      'host.beginNight': '밤을 시작한다',
+      'host.nightHint': '함께 시련을 풀어라. 어둠 속에서 누군가는 다른 목적을 좇는다…',
+      'host.nightN': '🌙 {n}번째 밤',
+      'host.puzzleProgress': '해결한 시련: {solved}/{total}',
+      'host.forceDawn': '강제로 동트기',
+      'host.dayN': '☀ {n}일차',
+      'host.voteHint': '토론한 뒤 휴대폰으로 처형할 용의자에게 투표하세요.',
+      'host.voteProgress': '투표 완료: {voted}/{total}',
+      'host.forceVote': '강제로 판결하기',
+      'host.nightDeath': '🗡 밤사이 {names}(이)가 살해당했다.',
+      'host.peacefulNight': '☼ 피 한 방울 없이 밤이 지나갔다.',
+      'host.someoneSaved': '🛡 마법사의 결계가 칼날을 막아냈다.',
+      'host.knightRevealed': '💋 유혹이 드러낸다 — {name}(은)는 황제의 기사다!',
+      'host.noExecution': '아무도 처형되지 않았다.',
+      'host.executed': '⚖ 백성의 뜻에 따라 {name}(이)가 처형되었다.',
+      'host.emperorExecuted': '👑 황제의 이름으로, {name}(이)가 즉결 처형되었다.',
+      'host.voteTie': '투표가 동수였다 — 아무도 처형되지 않았다.',
+      'host.goodWins': '제국의 승리',
+      'host.evilWins': '교단의 승리',
+      'host.newGame': '새 게임',
+
+      // --- 컨트롤러: 밤 행동 ---
+      'act.confirm': '확정',
+      'act.sent': '어둠 속에서 그대의 일을 마쳤다…',
+      'act.failed': '행동에 실패했습니다.',
+      'act.protectKicker': '절대 결계',
+      'act.protectPrompt': '오늘 밤 교단으로부터 누구를 지키겠습니까?',
+      'act.investigateKicker': '심판의 눈',
+      'act.investigatePrompt': '오늘 밤 누구의 정체를 밝히겠습니까?',
+      'act.assassinateKicker': '암살',
+      'act.assassinatePrompt': '오늘 밤 그대의 칼날에 쓰러질 자는?',
+      'act.seduceKicker': '유혹',
+      'act.seducePrompt': '한 명을 유혹하라 — 그가 황제의 기사라면 새벽에 정체가 드러난다.',
+      'act.emperorKicker': '황제의 이름으로',
+      'act.emperorPrompt': '투표를 무시하고 용의자 한 명을 즉시 처형한다.',
+      'act.emperorBtn': '즉결 처형',
+
+      // --- 컨트롤러: 밤 퍼즐 / 관전 ---
+      'night.puzzleHint': '모든 시련을 풀어야 밤이 지나갑니다.',
+      'dead.spectate': '그대는 쓰러졌다. 이야기가 어떻게 흘러가는지 지켜보라…',
+
+      // --- 컨트롤러: 낮 투표 ---
+      'vote.prompt': '누구를 처형하시겠습니까?',
+      'vote.skip': '기권',
+      'vote.sent': '투표를 마쳤습니다.',
+      'info.guilty': '🔥 심판이 타오른다 — {name}(은)는 교단을 섬긴다.',
+      'info.innocent': '✨ 심판이 잔잔하다 — {name}(은)는 교단이 아니다.',
+
+      // --- 컨트롤러: 게임 종료 ---
+      'over.checkTv': 'TV에서 전체 결과를 확인하세요!',
+      'over.goodWins': '제국의 승리',
+      'over.evilWins': '교단의 승리',
+      'over.youWon': '그대의 승리다.',
+      'over.youLost': '그대의 대의는 무너졌다.',
     },
   };
 
