@@ -14,15 +14,15 @@
     <!-- LOBBY -->
     <section id="lobby">
       <img class="logo lg" src="/logo.png" alt="The Third World" />
-      <p class="subtitle">Scan the QR code or enter the room code on your phone to join</p>
+      <p class="subtitle" data-i18n="host.lobbyHint">Scan the QR code or enter the room code on your phone to join</p>
 
       <div class="join-row">
         <div class="qr-box">
           <img id="qrImg" alt="Join QR code" />
-          <p class="muted">Scan with your phone camera</p>
+          <p class="muted" data-i18n="host.scanHint">Scan with your phone camera</p>
         </div>
         <div class="code-box">
-          <p class="muted">Or enter the room code</p>
+          <p class="muted" data-i18n="host.orCode">Or enter the room code</p>
           <div id="roomCode" class="room-code">····</div>
           <p id="joinUrl" class="muted" style="word-break: break-all"></p>
         </div>
@@ -33,32 +33,40 @@
       <button id="startBtn" class="btn" style="max-width: 360px; margin-top: 28px" disabled>
         Start game (need 1+ players)
       </button>
-      <a class="btn secondary" href="/home" style="max-width: 360px; margin-top: 12px">Back</a>
+      <a class="btn secondary" href="/home" style="max-width: 360px; margin-top: 12px" data-i18n="host.back">Back</a>
     </section>
 
     <!-- PLAYING -->
     <section id="playing" class="hidden">
-      <h2 class="brand" style="font-size: clamp(1.6rem, 5vw, 3rem)">The Fork</h2>
-      <p class="subtitle">Two paths emerge from the darkness. Which way?</p>
+      <h2 class="brand" style="font-size: clamp(1.6rem, 5vw, 3rem)" data-i18n="host.forkTitle">The Fork</h2>
+      <p class="subtitle" data-i18n="host.forkSubtitle">Two paths emerge from the darkness. Which way?</p>
       <p id="roleSummary" class="muted" style="margin-bottom: 16px"></p>
       <p id="roleAckStatus" class="muted" style="margin-bottom: 16px"></p>
       <div class="players-grid" id="voteStatus"></div>
-      <p class="muted" style="margin-top: 24px">Make your choice on your phone…</p>
+      <p class="muted" style="margin-top: 24px" data-i18n="host.makeChoice">Make your choice on your phone…</p>
     </section>
 
     <!-- RESULTS -->
     <section id="results" class="hidden">
-      <h2 class="brand">Results</h2>
+      <h2 class="brand" data-i18n="host.results">Results</h2>
       <div id="resultsBody"></div>
-      <button id="againBtn" class="btn" style="max-width: 360px; margin-top: 24px">
+      <button id="againBtn" class="btn" style="max-width: 360px; margin-top: 24px" data-i18n="host.nextRound">
         Next round
       </button>
     </section>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/i18n.js"></script>
     <script>
       const socket = io();
       const $ = (id) => document.getElementById(id);
+      const t = (k, v) => I18N.t(k, v);
+
+      // Remember the latest dynamic data so we can re-render on language change.
+      let lastPlayers = [];
+      let lastRoleCounts = null;
+      let lastRoleAcks = null;
+      let lastTally = null;
 
       socket.on('connect', () => socket.emit('host:create'));
 
@@ -76,31 +84,19 @@
 
       socket.on('game:phase', ({ phase }) => showPhase(phase));
 
-      socket.on('game:roleCounts', ({ good, evil }) => {
-        $('roleSummary').innerHTML =
-          `Alignments dealt — <b style="color:#7fe3a0">😇 Good ${good}</b> · ` +
-          `<b style="color:#ff8a8a">😈 Evil ${evil}</b> &nbsp;(roles are secret)`;
+      socket.on('game:roleCounts', (counts) => {
+        lastRoleCounts = counts;
+        renderRoleCounts();
       });
 
-      socket.on('game:roleAcks', ({ confirmed, total }) => {
-        const status = $('roleAckStatus');
-        if (confirmed >= total) {
-          status.textContent = `All ${total} players confirmed their roles ✓`;
-        } else {
-          status.textContent = `Confirming roles… ${confirmed}/${total} ready`;
-        }
+      socket.on('game:roleAcks', (acks) => {
+        lastRoleAcks = acks;
+        renderRoleAcks();
       });
 
       socket.on('game:results', ({ tally }) => {
-        const labels = { left: 'Left path', right: 'Right path' };
-        const body = $('resultsBody');
-        body.innerHTML = '';
-        Object.entries(tally).forEach(([choice, count]) => {
-          const row = document.createElement('p');
-          row.style.fontSize = '1.4rem';
-          row.textContent = `${labels[choice] || choice}: ${count} votes`;
-          body.appendChild(row);
-        });
+        lastTally = tally;
+        renderResults();
         showPhase('results');
       });
 
@@ -109,18 +105,57 @@
       $('startBtn').addEventListener('click', () => socket.emit('host:start'));
       $('againBtn').addEventListener('click', () => socket.emit('host:start'));
 
+      // Re-render every dynamic string when the language changes.
+      window.addEventListener('ttw:languagechange', () => {
+        renderPlayers(lastPlayers);
+        renderRoleCounts();
+        renderRoleAcks();
+        renderResults();
+      });
+
+      function renderRoleCounts() {
+        if (!lastRoleCounts) return;
+        const { good, evil } = lastRoleCounts;
+        $('roleSummary').innerHTML =
+          `${t('host.alignmentsDealt')} — <b style="color:#7fe3a0">😇 ${t('host.good')} ${good}</b> · ` +
+          `<b style="color:#ff8a8a">😈 ${t('host.evil')} ${evil}</b> &nbsp;${t('host.rolesSecret')}`;
+      }
+
+      function renderRoleAcks() {
+        if (!lastRoleAcks) return;
+        const { confirmed, total } = lastRoleAcks;
+        $('roleAckStatus').textContent =
+          confirmed >= total
+            ? t('host.allConfirmed', { total })
+            : t('host.confirming', { confirmed, total });
+      }
+
+      function renderResults() {
+        if (!lastTally) return;
+        const labels = { left: t('host.leftPath'), right: t('host.rightPath') };
+        const body = $('resultsBody');
+        body.innerHTML = '';
+        Object.entries(lastTally).forEach(([choice, count]) => {
+          const row = document.createElement('p');
+          row.style.fontSize = '1.4rem';
+          row.textContent = `${labels[choice] || choice}: ${count} ${t('host.votes')}`;
+          body.appendChild(row);
+        });
+      }
+
       function renderPlayers(players) {
+        lastPlayers = players || [];
         const wrap = $('players');
         wrap.innerHTML = '';
-        players.forEach((p) => {
+        lastPlayers.forEach((p) => {
           const el = document.createElement('div');
           el.className = 'player-pill' + (p.hasChosen ? ' ready' : '');
           el.innerHTML = `<span class="dot"></span>${escapeHtml(p.name)}`;
           wrap.appendChild(el);
         });
         const btn = $('startBtn');
-        btn.disabled = players.length === 0;
-        btn.textContent = players.length === 0 ? 'Start game (need 1+ players)' : 'Start game';
+        btn.disabled = lastPlayers.length === 0;
+        btn.textContent = lastPlayers.length === 0 ? t('host.startNeed') : t('host.start');
       }
 
       function renderVoteStatus(players) {

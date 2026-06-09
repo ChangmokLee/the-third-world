@@ -393,6 +393,16 @@ input::placeholder { color: var(--muted); }
   overflow: hidden;
   background: rgba(255, 255, 255, 0.06);
 }
+/* When auto-mounted by i18n.js, float it in the top-right corner. */
+.lang-toggle-fixed {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 20;
+  margin: 0;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
 .lang-toggle button {
   appearance: none;
   border: none;
