@@ -43,7 +43,15 @@ function buildGoodPool(count) {
   return pool.slice(0, count);
 }
 
-function buildEvilPool(count) {
+function buildEvilPool(count, totalPlayers) {
+  // Special rule: in a 3-player game the lone evil must be a Fallen Knight
+  // (no Succubus, since there is no real day vote to subvert yet).
+  if (totalPlayers === 3) {
+    const pool = [];
+    while (pool.length < count) pool.push(CLASSES.evil.fallenKnight);
+    return pool.slice(0, count);
+  }
+
   const pool = [];
   if (count >= 1) pool.push(CLASSES.evil.succubus);
   for (let i = 0; i < MAX_FALLEN_KNIGHTS && pool.length < count; i++) {
@@ -150,7 +158,7 @@ export function createRoomStore() {
     const goodPlayers = players.filter((p) => p.role === 'good');
     const evilPlayers = players.filter((p) => p.role === 'evil');
     dealClasses(goodPlayers, buildGoodPool(goodPlayers.length));
-    dealClasses(evilPlayers, buildEvilPool(evilPlayers.length));
+    dealClasses(evilPlayers, buildEvilPool(evilPlayers.length, n));
     return room;
   }
 
