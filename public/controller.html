@@ -62,6 +62,9 @@
       <div class="panel">
         <p class="muted" data-i18n="night.puzzleHint">Solve every trial to let the night pass.</p>
         <div id="puzzleList"></div>
+        <p id="puzzleDone" class="muted hidden" style="margin-top: 12px" data-i18n="night.puzzleDone">
+          You solved every trial. Waiting for the others to finish…
+        </p>
       </div>
 
       <div id="nightDead" class="panel hidden" style="margin-top: 12px">
@@ -162,6 +165,7 @@
       let pickedActionTarget = null;
       let pickedEmperorTarget = null;
       let puzzles = [];
+      let mySolved = new Set();
       let myDayAction = null;
 
       // ===== ROLE CARD =====
@@ -225,16 +229,15 @@
       // ===== NIGHT: puzzles =====
       socket.on('game:night', (data) => {
         puzzles = data.puzzles || [];
+        mySolved = new Set();
         const me = (data.players || []).find((p) => p.id === socket.id);
         amAlive = me ? me.alive : amAlive;
         renderPuzzles();
         $('nightDead').classList.toggle('hidden', amAlive);
         show('night');
       });
-      socket.on('game:puzzleUpdate', (data) => {
-        const map = {};
-        data.puzzles.forEach((p) => (map[p.id] = p.solved));
-        puzzles.forEach((p) => (p.solved = map[p.id] ?? p.solved));
+      socket.on('player:puzzleOk', ({ puzzleId }) => {
+        mySolved.add(Number(puzzleId));
         renderPuzzles();
       });
       socket.on('player:puzzleWrong', ({ puzzleId }) => {
@@ -249,10 +252,12 @@
         const lang = I18N.getLang();
         const wrap = $('puzzleList');
         wrap.innerHTML = '';
+        const allMine = puzzles.length > 0 && puzzles.every((p) => mySolved.has(p.id));
         puzzles.forEach((p) => {
+          const solved = mySolved.has(p.id);
           const row = document.createElement('div');
-          row.className = 'puzzle-row' + (p.solved ? ' solved' : '');
-          if (p.solved) {
+          row.className = 'puzzle-row' + (solved ? ' solved' : '');
+          if (solved) {
             row.innerHTML = `<span class="puzzle-q">${escapeHtml(lang === 'ko' ? p.ko : p.en)}</span><span class="puzzle-state">✓</span>`;
           } else {
             row.innerHTML =
@@ -264,6 +269,8 @@
           }
           wrap.appendChild(row);
         });
+        // Once this player has solved everything, tell them they're waiting on others.
+        $('puzzleDone').classList.toggle('hidden', !allMine);
         wrap.querySelectorAll('[data-puzzle-go]').forEach((btn) => {
           btn.addEventListener('click', () => submitPuzzle(btn.dataset.puzzleGo));
         });

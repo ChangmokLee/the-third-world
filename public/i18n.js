@@ -100,7 +100,7 @@
       'host.beginNight': 'Let night fall',
       'host.nightHint': 'Solve the trials together. In the dark, some pursue other ends…',
       'host.nightN': '🌙 Night {n}',
-      'host.puzzleProgress': 'Trials solved: {solved}/{total}',
+      'host.puzzleProgress': 'Players who finished their trials: {done}/{total}',
       'host.forceDawn': 'Force dawn',
       'host.dayN': '☀ Day {n}',
       'host.voteHint': 'Debate, then vote on your phones to execute one suspect.',
@@ -135,7 +135,8 @@
       'act.emperorBtn': 'Summary execution',
 
       // --- Controller: night puzzles / spectator ---
-      'night.puzzleHint': 'Solve every trial to let the night pass.',
+      'night.puzzleHint': 'Solve all of your own trials to let the night pass.',
+      'night.puzzleDone': 'You solved every trial. Waiting for the others to finish…',
       'dead.spectate': 'You have fallen. Watch how the tale unfolds…',
 
       // --- Controller: day vote ---
@@ -245,7 +246,7 @@
       'host.beginNight': '밤을 시작한다',
       'host.nightHint': '함께 시련을 풀어라. 어둠 속에서 누군가는 다른 목적을 좇는다…',
       'host.nightN': '🌙 {n}번째 밤',
-      'host.puzzleProgress': '해결한 시련: {solved}/{total}',
+      'host.puzzleProgress': '시련을 끝난 인원: {done}/{total}명',
       'host.forceDawn': '강제로 동트기',
       'host.dayN': '☀ {n}일차',
       'host.voteHint': '토론한 뒤 휴대폰으로 처형할 용의자에게 투표하세요.',
@@ -280,7 +281,8 @@
       'act.emperorBtn': '즉결 처형',
 
       // --- 컨트롤러: 밤 퍼즐 / 관전 ---
-      'night.puzzleHint': '모든 시련을 풀어야 밤이 지나갑니다.',
+      'night.puzzleHint': '자신의 시련을 모두 풀어야 밤이 지나갑니다.',
+      'night.puzzleDone': '모든 시련을 풀었습니다. 다른 사람들이 끝내기를 기다리는 중…',
       'dead.spectate': '그대는 쓰러졌다. 이야기가 어떻게 흘러가는지 지켜보라…',
 
       // --- 컨트롤러: 낮 투표 ---

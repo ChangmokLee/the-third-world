@@ -5,7 +5,6 @@ import {
   startNight,
   submitNightAction,
   solvePuzzle,
-  allPuzzlesSolved,
   puzzleProgress,
   resolveNight,
   startDay,
@@ -46,8 +45,9 @@ function publicPlayers(room) {
 
 export function registerSocketHandlers(io, rooms) {
   // -------------------------------------------------------------------------
-  // Broadcast the night state: shared puzzle board to everyone, plus a private
-  // "your secret action" prompt to each living role-player.
+  // Broadcast the night state: the shared puzzle questions + a private "your
+  // secret action" prompt to each living role-player. Each player solves the
+  // puzzles independently, so progress is tracked per phone.
   // -------------------------------------------------------------------------
   function broadcastNight(room) {
     const pp = puzzleProgress(room);
@@ -58,7 +58,6 @@ export function registerSocketHandlers(io, rooms) {
         id: p.id,
         en: p.en,
         ko: p.ko,
-        solved: p.solved,
       })),
       progress: pp,
     });
@@ -77,9 +76,8 @@ export function registerSocketHandlers(io, rooms) {
     }
   }
 
-  function broadcastPuzzleUpdate(room) {
+  function broadcastPuzzleProgress(room) {
     io.to(room.code).emit('game:puzzleUpdate', {
-      puzzles: room.night.puzzles.map((p) => ({ id: p.id, solved: p.solved })),
       progress: puzzleProgress(room),
     });
   }
@@ -285,21 +283,27 @@ export function registerSocketHandlers(io, rooms) {
     });
 
     // ----------------------------------------------------------------------
-    // NIGHT: a player solves a puzzle (collaborative cover task)
+    // NIGHT: a player solves one of their own puzzles (personal cover task)
     // ----------------------------------------------------------------------
     socket.on('player:solvePuzzle', ({ puzzleId, answer }) => {
       const room = rooms.getRoom(socket.data.roomCode);
       if (!room) return;
       const player = room.players.get(socket.id);
       if (!player || !player.alive) return;
-      const result = solvePuzzle(room, puzzleId, answer);
+      const result = solvePuzzle(room, socket.id, puzzleId, answer);
       if (result.error === 'WRONG') {
         socket.emit('player:puzzleWrong', { puzzleId });
         return;
       }
       if (!result.ok) return;
-      broadcastPuzzleUpdate(room);
-      if (allPuzzlesSolved(room)) {
+      // Tell this player their own progress; tell the room the aggregate.
+      socket.emit('player:puzzleOk', {
+        puzzleId,
+        mySolved: result.mySolved,
+        myTotal: result.myTotal,
+      });
+      broadcastPuzzleProgress(room);
+      if (result.allSolved) {
         io.to(room.code).emit('game:phase', { phase: 'nightResolving' });
         endNight(room);
       }

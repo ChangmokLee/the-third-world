@@ -122,11 +122,9 @@
       });
       socket.on('game:puzzleUpdate', (data) => {
         if (!lastNight) return;
-        const map = {};
-        data.puzzles.forEach((p) => (map[p.id] = p.solved));
-        lastNight.puzzles.forEach((p) => (p.solved = map[p.id] ?? p.solved));
         lastNight.progress = data.progress;
-        renderNight();
+        const prog = data.progress || { done: 0, total: 0 };
+        $('puzzleProgress').textContent = t('host.puzzleProgress', prog);
       });
 
       socket.on('game:day', (data) => {
@@ -209,15 +207,15 @@
         const board = $('puzzleBoard');
         board.innerHTML = '';
         const lang = I18N.getLang();
+        // The questions are shown for reference; everyone solves them privately.
         lastNight.puzzles.forEach((p) => {
           const el = document.createElement('div');
-          el.className = 'puzzle-card' + (p.solved ? ' solved' : '');
+          el.className = 'puzzle-card';
           el.innerHTML =
-            `<span class="puzzle-q">${escapeHtml(lang === 'ko' ? p.ko : p.en)}</span>` +
-            `<span class="puzzle-state">${p.solved ? '✓' : '…'}</span>`;
+            `<span class="puzzle-q">${escapeHtml(lang === 'ko' ? p.ko : p.en)}</span>`;
           board.appendChild(el);
         });
-        const prog = lastNight.progress || { solved: 0, total: 0 };
+        const prog = lastNight.progress || { done: 0, total: 0 };
         $('puzzleProgress').textContent = t('host.puzzleProgress', prog);
         renderPlayerGrid('nightPlayers', lastNight.players);
       }

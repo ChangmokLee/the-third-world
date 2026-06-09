@@ -83,7 +83,9 @@ export function startNight(room) {
   room.phase = 'night';
   room.day = (room.day || 0) + 1;
 
-  // Fresh puzzle board for this night.
+  // Fresh puzzle board for this night. The same questions are posed to every
+  // player, but each person must solve all of them on their own — the puzzles
+  // are personal "busywork" so role-players can act under cover.
   const picks = shuffle([...PUZZLE_BANK]).slice(0, PUZZLES_PER_NIGHT);
   room.night = {
     puzzles: picks.map((p, i) => ({
@@ -91,9 +93,9 @@ export function startNight(room) {
       en: p.en,
       ko: p.ko,
       a: String(p.a).toLowerCase().trim(),
-      solved: false,
-      solvedBy: null,
     })),
+    // playerId -> Set of solved puzzle ids (each player solves independently)
+    solvedBy: new Map(),
     actions: new Map(), // playerId -> { type, target }
   };
 
@@ -121,27 +123,64 @@ export function submitNightAction(room, playerId, target) {
   return { ok: true };
 }
 
-// Try to solve a puzzle. Returns { ok:true, allSolved } or { error }.
-export function solvePuzzle(room, puzzleId, answer) {
+// Try to solve a puzzle for one specific player. Each living player must solve
+// every puzzle on their own. Returns { ok, mySolved, myTotal, allSolved } or
+// { error }.
+export function solvePuzzle(room, playerId, puzzleId, answer) {
   if (room.phase !== 'night') return { error: 'NOT_NIGHT' };
+  const player = room.players.get(playerId);
+  if (!player || !player.alive) return { error: 'NOT_ALLOWED' };
   const puzzle = room.night.puzzles.find((p) => p.id === puzzleId);
   if (!puzzle) return { error: 'NO_PUZZLE' };
-  if (puzzle.solved) return { ok: true, allSolved: allPuzzlesSolved(room) };
 
-  const given = String(answer || '').toLowerCase().trim();
-  if (given !== puzzle.a) return { error: 'WRONG' };
-
-  puzzle.solved = true;
-  return { ok: true, allSolved: allPuzzlesSolved(room) };
+  let mine = room.night.solvedBy.get(playerId);
+  if (!mine) {
+    mine = new Set();
+    room.night.solvedBy.set(playerId, mine);
+  }
+  if (!mine.has(puzzleId)) {
+    const given = String(answer || '').toLowerCase().trim();
+    if (given !== puzzle.a) return { error: 'WRONG' };
+    mine.add(puzzleId);
+  }
+  return {
+    ok: true,
+    mySolved: mine.size,
+    myTotal: room.night.puzzles.length,
+    allSolved: allPuzzlesSolved(room),
+  };
 }
 
+// Has a given player solved every puzzle this night?
+export function playerSolvedAll(room, playerId) {
+  const total = room.night?.puzzles.length || 0;
+  const mine = room.night?.solvedBy.get(playerId);
+  return total > 0 && (mine?.size || 0) >= total;
+}
+
+// The night may end only once EVERY living player has solved ALL puzzles.
 export function allPuzzlesSolved(room) {
-  return room.night?.puzzles.every((p) => p.solved) ?? false;
+  const living = livingPlayers(room);
+  if (living.length === 0) return false;
+  return living.every((p) => playerSolvedAll(room, p.id));
 }
 
+// Aggregate progress for the TV: how many living players have finished all
+// their puzzles, plus the per-player puzzle count.
 export function puzzleProgress(room) {
-  const puzzles = room.night?.puzzles || [];
-  return { solved: puzzles.filter((p) => p.solved).length, total: puzzles.length };
+  const living = livingPlayers(room);
+  const total = living.length;
+  const done = living.filter((p) => playerSolvedAll(room, p.id)).length;
+  return { done, total, puzzleCount: room.night?.puzzles.length || 0 };
+}
+
+// One player's personal progress (which puzzle ids they have solved).
+export function playerProgress(room, playerId) {
+  const mine = room.night?.solvedBy.get(playerId);
+  return {
+    solvedIds: mine ? [...mine] : [],
+    total: room.night?.puzzles.length || 0,
+  };
 }
 
 // Resolve the night: apply protection, assassinations, investigations and the
