@@ -123,26 +123,28 @@
       let myRole = null;
       let roleConfirmed = false;
       let currentPhase = 'lobby';
-      socket.on('game:role', ({ role }) => {
+      socket.on('game:role', ({ role, charClass }) => {
         myRole = role;
         roleConfirmed = false;
         const card = $('roleCard');
+        const className = charClass?.name || '';
+        const classId = charClass?.id || '';
         if (role === 'evil') {
-          card.style.backgroundImage = "url('/bad-team.png')";
+          card.style.backgroundImage = classId ? `url('/${classId}.png')` : "url('/bad-team.png')";
           card.classList.add('evil');
           card.classList.remove('good');
           $('roleKicker').textContent = 'Decree of the Cult of the Fallen';
-          $('roleTitle').textContent = 'Doom the Expedition';
+          $('roleTitle').textContent = className || 'Doom the Expedition';
           $('roleOrders').textContent =
-            'By the will of the dark covenant, you march among the chosen — not to save them, but to ensure none return. Let the Third World fall into shadow.';
+            'You march among the chosen — not to save them, but to ensure none return. Let the Third World fall into shadow.';
         } else {
-          card.style.backgroundImage = "url('/good-team.png')";
+          card.style.backgroundImage = classId ? `url('/${classId}.png')` : "url('/good-team.png')";
           card.classList.add('good');
           card.classList.remove('evil');
           $('roleKicker').textContent = 'By Command of the Emperor';
-          $('roleTitle').textContent = 'Appointed to the Expedition';
+          $('roleTitle').textContent = className || 'Appointed to the Expedition';
           $('roleOrders').textContent =
-            'You are named to the Emperor\u2019s expedition. Carry out your charge with honor, stand by your companions, and return home victorious.';
+            'You are named to the Emperor\u2019s expedition. Carry out your charge with honor and return home victorious.';
         }
         $('roleConfirmBtn').disabled = false;
         $('roleConfirmBtn').textContent = 'I accept my fate';

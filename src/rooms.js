@@ -5,6 +5,38 @@ const ROOM_CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // no easily-confuse
 const ROOM_CODE_LENGTH = 4;
 const MAX_PLAYERS = 8;
 
+// Character classes available to each alignment. Players in the same game get
+// unique classes where possible (we only repeat once a side's pool runs out).
+const CLASSES = {
+  good: [
+    { id: 'emperor-knight', name: 'Knight of the Emperor' },
+    { id: 'inquisitor', name: 'Inquisitor' },
+    { id: 'court-wizard', name: 'Court Wizard' },
+  ],
+  evil: [
+    { id: 'fallen-knight', name: 'Fallen Knight' },
+    { id: 'succubus', name: 'Succubus' },
+  ],
+};
+
+function shuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// Hand out unique classes for one alignment. If there are more players than
+// available classes, the pool reshuffles and repeats (kept minimal).
+function dealClasses(players, pool) {
+  let bag = [];
+  players.forEach((p) => {
+    if (bag.length === 0) bag = shuffle([...pool]);
+    p.charClass = bag.pop();
+  });
+}
+
 function randomCode() {
   let code = '';
   for (let i = 0; i < ROOM_CODE_LENGTH; i++) {
@@ -51,6 +83,7 @@ export function createRoomStore() {
       connected: true,
       choice: null,
       role: null, // 'good' | 'evil' — assigned secretly when the game starts
+      charClass: null, // { id, name } — character class, assigned with the role
       roleAck: false, // has the player confirmed (seen) their role?
     };
     room.players.set(socketId, player);
@@ -67,9 +100,8 @@ export function createRoomStore() {
     return null;
   }
 
-  // Secretly assign a good/evil alignment to every player in the room.
-  // Roughly one third are evil (at least one when there are 3+ players),
-  // the rest are good. Returns the room for convenience.
+  // Secretly assign a good/evil alignment to every player in the room, then
+  // hand each player a unique character class for their side. Returns the room.
   function assignRoles(room) {
     const players = [...room.players.values()];
     const n = players.length;
@@ -78,13 +110,16 @@ export function createRoomStore() {
     if (evilCount >= n) evilCount = Math.max(0, n - 1); // never all-evil
 
     // Shuffle, then mark the first `evilCount` as evil.
-    for (let i = players.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [players[i], players[j]] = [players[j], players[i]];
-    }
+    shuffle(players);
     players.forEach((p, i) => {
       p.role = i < evilCount ? 'evil' : 'good';
     });
+
+    // Deal classes per side so nobody in the same game overlaps (when possible).
+    const goodPlayers = players.filter((p) => p.role === 'good');
+    const evilPlayers = players.filter((p) => p.role === 'evil');
+    dealClasses(goodPlayers, CLASSES.good);
+    dealClasses(evilPlayers, CLASSES.evil);
     return room;
   }
 

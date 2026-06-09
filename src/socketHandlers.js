@@ -72,7 +72,7 @@ export function registerSocketHandlers(io, rooms) {
       for (const p of room.players.values()) p.roleAck = false;
 
       for (const p of room.players.values()) {
-        io.to(p.id).emit('game:role', { role: p.role });
+        io.to(p.id).emit('game:role', { role: p.role, charClass: p.charClass });
       }
 
       io.to(room.code).emit('game:phase', { phase: 'playing' });
