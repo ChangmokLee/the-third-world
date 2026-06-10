@@ -6,11 +6,11 @@
   --accent-2: #ff7eb6;
   --gold: #ffcf6b;
   --text: #f3eefc;
-  --muted: #a99fc7;
+  --muted: #c4bce0;
   --good: #6bffb0;
   --danger: #ff6b6b;
   --radius: 16px;
-  --font: 'Grenze Gotisch', 'Nanum Myeongjo', 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+  --font: 'Grenze Gotisch', 'Noto Serif KR', 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -19,6 +19,7 @@ html, body {
   margin: 0;
   min-height: 100%;
   font-family: var(--font);
+  font-weight: 500;
   color: var(--text);
   background: radial-gradient(circle at 20% 0%, var(--bg-2), var(--bg) 60%);
 }
@@ -212,7 +213,7 @@ input::placeholder { color: var(--muted); }
 
 .code-input { letter-spacing: 0.5em; text-transform: uppercase; font-weight: 800; }
 
-.muted { color: var(--muted); font-size: 0.9rem; }
+.muted { color: var(--muted); font-size: 0.9rem; font-weight: 500; }
 .error { color: var(--danger); margin-top: 10px; min-height: 1.2em; }
 .hidden { display: none !important; }
 
@@ -364,7 +365,7 @@ input::placeholder { color: var(--muted); }
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 .role-title {
-  font-family: 'Grenze Gotisch', 'Nanum Myeongjo', serif;
+  font-family: 'Grenze Gotisch', 'Noto Serif KR', serif;
   font-weight: 900;
   font-size: clamp(1.8rem, 8vw, 2.4rem);
   line-height: 1.05;
