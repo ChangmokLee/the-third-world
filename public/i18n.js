@@ -18,7 +18,7 @@
 
       // --- Home (home.html) ---
       'home.subtitle': 'What would you like to do?',
-      'home.host': 'Start a new game on TV (Host)',
+      'home.host': 'Host a new game',
       'home.join': 'Join with a room code',
       'home.logout': 'Log out',
 
@@ -164,7 +164,7 @@
 
       // --- 홈 ---
       'home.subtitle': '무엇을 하시겠어요?',
-      'home.host': 'TV에서 새 게임 시작 (호스트)',
+      'home.host': '새 게임 호스트',
       'home.join': '방 코드로 참가',
       'home.logout': '로그아웃',
 
