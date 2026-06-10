@@ -355,7 +355,7 @@
     const wrap = document.createElement('div');
     wrap.className = 'lang-toggle lang-toggle-fixed';
     wrap.innerHTML =
-      '<button type="button" data-lang="en">EN</button>' +
+      '<button type="button" data-lang="en">ENG</button>' +
       '<button type="button" data-lang="ko">한국어</button>';
     document.body.appendChild(wrap);
     wireToggles();
