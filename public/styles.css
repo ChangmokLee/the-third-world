@@ -171,20 +171,21 @@ h1, h2, h3 { margin: 0 0 0.4em; line-height: 1.1; font-family: var(--font-displa
   justify-content: center;
   gap: 10px;
   width: 100%;
-  padding: 14px 20px;
+  padding: 16px 20px;
   margin-top: 12px;
   border: none;
   border-radius: 12px;
   font-size: 1.05rem;
   font-weight: 700;
   font-family: inherit;
-  color: #1a1430;
-  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: var(--gold);
+  background: url('/button-bg.png') center / 100% 100% no-repeat;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.7);
   cursor: pointer;
   transition: transform 0.08s ease, filter 0.15s ease;
   text-decoration: none;
 }
-.btn:hover { filter: brightness(1.08); }
+.btn:hover { filter: brightness(1.12); }
 .btn:active { transform: translateY(1px); }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
@@ -192,11 +193,13 @@ h1, h2, h3 { margin: 0 0 0.4em; line-height: 1.1; font-family: var(--font-displa
   color: var(--text);
   background: rgba(255, 255, 255, 0.08);
   border: 1px solid rgba(255, 255, 255, 0.15);
+  text-shadow: none;
 }
 
 .btn.google {
   color: #1f1f1f;
   background: #ffffff;
+  text-shadow: none;
 }
 
 input[type='text'] {
