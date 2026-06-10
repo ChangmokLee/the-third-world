@@ -421,6 +421,8 @@ input::placeholder { color: var(--muted); }
   font-size: 0.85rem;
   font-weight: 700;
   padding: 7px 16px;
+  min-width: 64px;
+  text-align: center;
   cursor: pointer;
   transition: background 0.15s ease, color 0.15s ease;
 }
