@@ -10,7 +10,7 @@
   --good: #6bffb0;
   --danger: #ff6b6b;
   --radius: 16px;
-  --font: 'Grenze Gotisch', 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+  --font: 'Grenze Gotisch', 'Nanum Myeongjo', 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; }
@@ -364,7 +364,7 @@ input::placeholder { color: var(--muted); }
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 .role-title {
-  font-family: 'Grenze Gotisch', serif;
+  font-family: 'Grenze Gotisch', 'Nanum Myeongjo', serif;
   font-weight: 900;
   font-size: clamp(1.8rem, 8vw, 2.4rem);
   line-height: 1.05;
