@@ -125,7 +125,8 @@
       fetch('/api/me')
         .then((r) => r.json())
         .then((data) => {
-          const myName = data.user?.name ? data.user.name.slice(0, 16) : '';
+          const saved = (localStorage.getItem('ttw:nickname') || '').slice(0, 16);
+          const myName = saved || (data.user?.name ? data.user.name.slice(0, 16) : '');
           if (myName && !$('nameInput').value) $('nameInput').value = myName;
           if (codeFromQr && myName) socket.emit('player:join', { code: codeFromQr, name: myName });
         })

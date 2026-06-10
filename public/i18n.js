@@ -20,7 +20,15 @@
       'home.subtitle': 'What would you like to do?',
       'home.host': 'Host a new game',
       'home.join': 'Join with a room code',
+      'home.settings': 'Settings',
       'home.logout': 'Log out',
+      'settings.title': 'Settings',
+      'settings.nicknameLabel': 'Nickname',
+      'settings.nicknamePlaceholder': 'Enter a nickname',
+      'settings.nicknameHint': 'This name is used when you join a game.',
+      'settings.save': 'Save',
+      'settings.cancel': 'Cancel',
+      'settings.saved': 'Saved!',
 
       // --- Host (host.html) ---
       'host.lobbyHint': 'Scan the QR code or enter the room code on your phone to join',
@@ -166,7 +174,15 @@
       'home.subtitle': '무엇을 하시겠어요?',
       'home.host': '새 게임 호스트',
       'home.join': '방 코드로 참가',
+      'home.settings': '설정',
       'home.logout': '로그아웃',
+      'settings.title': '설정',
+      'settings.nicknameLabel': '닉네임',
+      'settings.nicknamePlaceholder': '닉네임을 입력하세요',
+      'settings.nicknameHint': '게임에 참가할 때 이 이름이 사용됩니다.',
+      'settings.save': '저장',
+      'settings.cancel': '취소',
+      'settings.saved': '저장됨!',
 
       // --- 호스트 ---
       'host.lobbyHint': 'QR 코드를 스캔하거나 휴대폰에 방 코드를 입력해 참가하세요',

@@ -21,13 +21,29 @@
     <div class="panel">
       <a class="btn" href="/host" data-i18n="home.host">Host a new game</a>
       <a class="btn secondary" href="/play" data-i18n="home.join">Join with a room code</a>
+      <button id="settingsBtn" class="btn secondary" type="button" data-i18n="home.settings">Settings</button>
       <form action="/logout" method="post" style="margin-top: 16px">
         <button class="btn secondary" type="submit" data-i18n="home.logout">Log out</button>
       </form>
     </div>
 
+    <!-- SETTINGS MODAL -->
+    <div id="settingsModal" class="modal-overlay hidden">
+      <div class="modal-card">
+        <h2 class="brand" style="font-size: 1.6rem; margin-top: 0" data-i18n="settings.title">Settings</h2>
+        <label class="modal-label" for="nicknameInput" data-i18n="settings.nicknameLabel">Nickname</label>
+        <input id="nicknameInput" type="text" maxlength="16"
+               placeholder="Enter a nickname" data-i18n-placeholder="settings.nicknamePlaceholder" autocomplete="off" />
+        <p class="muted" style="font-size: 0.9rem; margin: 8px 0 0" data-i18n="settings.nicknameHint">This name is used when you join a game.</p>
+        <p id="settingsSaved" class="muted" style="color: var(--good); min-height: 1.2em; margin: 8px 0 0"></p>
+        <button id="settingsSaveBtn" class="btn" type="button" data-i18n="settings.save">Save</button>
+        <button id="settingsCancelBtn" class="btn secondary" type="button" data-i18n="settings.cancel">Cancel</button>
+      </div>
+    </div>
+
     <script src="/i18n.js"></script>
     <script>
+      const NICK_KEY = 'ttw:nickname';
       fetch('/api/me')
         .then((r) => r.json())
         .then((data) => {
@@ -36,10 +52,38 @@
             return;
           }
           const chip = document.getElementById('userChip');
-          document.getElementById('userName').textContent = data.user.name || 'Player';
+          const displayName =
+            localStorage.getItem(NICK_KEY) || data.user.name || 'Player';
+          document.getElementById('userName').textContent = displayName;
           if (data.user.photo) document.getElementById('userPhoto').src = data.user.photo;
           chip.classList.remove('hidden');
         });
+
+      // ---- Settings (nickname) ----
+      const $ = (id) => document.getElementById(id);
+      const modal = $('settingsModal');
+      function openSettings() {
+        $('nicknameInput').value = localStorage.getItem(NICK_KEY) || '';
+        $('settingsSaved').textContent = '';
+        modal.classList.remove('hidden');
+        $('nicknameInput').focus();
+      }
+      function closeSettings() {
+        modal.classList.add('hidden');
+      }
+      $('settingsBtn').addEventListener('click', openSettings);
+      $('settingsCancelBtn').addEventListener('click', closeSettings);
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeSettings();
+      });
+      $('settingsSaveBtn').addEventListener('click', () => {
+        const nick = $('nicknameInput').value.trim().slice(0, 16);
+        if (nick) localStorage.setItem(NICK_KEY, nick);
+        else localStorage.removeItem(NICK_KEY);
+        document.getElementById('userName').textContent = nick || 'Player';
+        $('settingsSaved').textContent = I18N.t('settings.saved');
+        setTimeout(closeSettings, 700);
+      });
     </script>
   </body>
 </html>
