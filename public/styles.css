@@ -10,7 +10,8 @@
   --good: #6bffb0;
   --danger: #ff6b6b;
   --radius: 16px;
-  --font: 'Grenze Gotisch', 'Noto Serif KR', 'Trebuchet MS', 'Segoe UI', system-ui, sans-serif;
+  --font: 'EB Garamond', 'Noto Serif KR', 'Georgia', 'Times New Roman', serif;
+  --font-display: 'Cinzel', 'Noto Serif KR', 'Georgia', serif;
 }
 
 * { box-sizing: border-box; }
@@ -93,9 +94,10 @@ body.main-bg::after {
 /* Lift the actual content above the background layers. */
 body.main-bg > * { position: relative; z-index: 1; }
 
-h1, h2, h3 { margin: 0 0 0.4em; line-height: 1.1; }
+h1, h2, h3 { margin: 0 0 0.4em; line-height: 1.1; font-family: var(--font-display); }
 
 .brand {
+  font-family: var(--font-display);
   font-size: clamp(2rem, 6vw, 4rem);
   font-weight: 800;
   letter-spacing: 0.5px;
@@ -257,6 +259,7 @@ input::placeholder { color: var(--muted); }
 
 /* ---- Host / TV ---- */
 .room-code {
+  font-family: var(--font-display);
   font-size: clamp(3rem, 14vw, 8rem);
   font-weight: 900;
   letter-spacing: 0.15em;
@@ -365,7 +368,7 @@ input::placeholder { color: var(--muted); }
   text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
 }
 .role-title {
-  font-family: 'Grenze Gotisch', 'Noto Serif KR', serif;
+  font-family: var(--font-display);
   font-weight: 900;
   font-size: clamp(1.8rem, 8vw, 2.4rem);
   line-height: 1.05;
