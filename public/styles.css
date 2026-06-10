@@ -461,11 +461,14 @@ input::placeholder { color: var(--muted); }
   overflow: hidden;
   background: rgba(255, 255, 255, 0.06);
 }
-/* When auto-mounted by i18n.js, float it in the top-right corner. */
-.lang-toggle-fixed {
+/* When auto-mounted by i18n.js, float it at the top center.
+   Uses a double-class selector to outrank `body.main-bg > *` etc. */
+.lang-toggle.lang-toggle-fixed {
   position: fixed;
   top: 16px;
-  right: 16px;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
   z-index: 20;
   margin: 0;
   backdrop-filter: blur(10px);
