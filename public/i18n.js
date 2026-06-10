@@ -18,8 +18,8 @@
 
       // --- Home (home.html) ---
       'home.subtitle': 'What would you like to do?',
-      'home.host': '📺 Start a new game on TV (Host)',
-      'home.join': '📱 Join with a room code',
+      'home.host': 'Start a new game on TV (Host)',
+      'home.join': 'Join with a room code',
       'home.logout': 'Log out',
 
       // --- Host (host.html) ---
@@ -164,8 +164,8 @@
 
       // --- 홈 ---
       'home.subtitle': '무엇을 하시겠어요?',
-      'home.host': '📺 TV에서 새 게임 시작 (호스트)',
-      'home.join': '📱 방 코드로 참가',
+      'home.host': 'TV에서 새 게임 시작 (호스트)',
+      'home.join': '방 코드로 참가',
       'home.logout': '로그아웃',
 
       // --- 호스트 ---
