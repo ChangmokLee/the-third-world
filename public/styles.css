@@ -59,6 +59,13 @@ body.signin-bg::after {
 /* Lift the actual content above the background layers. */
 body.signin-bg > * { position: relative; z-index: 1; }
 
+/* Sign-in: bare Google button (no surrounding panel). */
+.signin-actions {
+  width: 100%;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
 /* Post-login pages (home/host/controller): main dungeon background. */
 body.main-bg { background: #0e0b1a; }
 body.main-bg::before {
