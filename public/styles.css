@@ -350,6 +350,17 @@ input::placeholder { color: var(--muted); }
   justify-content: center;
   margin-top: 24px;
 }
+.lobby-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 360px;
+  margin: 28px auto 0;
+}
+.lobby-actions .btn {
+  width: 100%;
+}
 .player-pill {
   background: var(--panel);
   border: 1px solid rgba(255, 255, 255, 0.1);
