@@ -34,6 +34,7 @@
         <button id="startBtn" class="btn" disabled>
           Start game (need 1+ players)
         </button>
+        <button id="addBotBtn" class="btn secondary hidden" type="button">+ Add test bot</button>
         <a class="btn secondary" href="/home" data-i18n="host.back">Back</a>
       </div>
     </section>
@@ -103,6 +104,7 @@
         $('roomCode').textContent = state.code;
         if (state.qr) $('qrImg').src = state.qr;
         if (state.joinUrl) $('joinUrl').textContent = state.joinUrl;
+        if (state.dev) $('addBotBtn').classList.remove('hidden');
         renderPlayers(state.players);
       });
 
@@ -154,6 +156,7 @@
       socket.on('room:closed', () => location.reload());
 
       $('startBtn').addEventListener('click', () => socket.emit('host:start'));
+      $('addBotBtn').addEventListener('click', () => socket.emit('host:addBots', { count: 1 }));
       $('beginNightBtn').addEventListener('click', () => socket.emit('host:beginNight'));
       $('nightAdvanceBtn').addEventListener('click', () => socket.emit('host:advance'));
       $('dayAdvanceBtn').addEventListener('click', () => socket.emit('host:advance'));

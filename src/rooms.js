@@ -126,6 +126,32 @@ export function createRoomStore() {
     return { room, player };
   }
 
+  // Dev-only: add a fake "bot" player to a room so a single developer can fill
+  // a room and walk through a whole game. Bots have a synthetic id (no socket)
+  // and are auto-played by the socket layer.
+  function addBot(room, name) {
+    if (!room) return { error: 'ROOM_NOT_FOUND' };
+    if (room.players.size >= MAX_PLAYERS) return { error: 'ROOM_FULL' };
+    let n = 1;
+    let id = `bot_${n}`;
+    while (room.players.has(id)) id = `bot_${++n}`;
+    const player = {
+      id,
+      name: (name || `Bot ${n}`).slice(0, 16),
+      connected: true,
+      isBot: true,
+      choice: null,
+      role: null,
+      charClass: null,
+      roleAck: false,
+      alive: true,
+      nightAction: null,
+      investigateResult: null,
+    };
+    room.players.set(id, player);
+    return { room, player };
+  }
+
   function removePlayer(socketId) {
     for (const room of rooms.values()) {
       if (room.players.has(socketId)) {
@@ -200,6 +226,7 @@ export function createRoomStore() {
     createRoom,
     getRoom,
     addPlayer,
+    addBot,
     removePlayer,
     removeRoomByHost,
     assignRoles,

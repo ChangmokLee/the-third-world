@@ -36,6 +36,11 @@ const GOOGLE_CALLBACK_URL =
 
 const googleConfigured = Boolean(GOOGLE_CLIENT_ID && GOOGLE_CLIENT_SECRET);
 
+// Developer convenience: outside production you can skip Google login entirely
+// so you can open /host and /play locally and test the whole game by yourself.
+// Set DEV_NO_AUTH=0 to force real auth even in development.
+const devNoAuth = !isProduction && process.env.DEV_NO_AUTH !== '0';
+
 const app = express();
 const server = http.createServer(app);
 const io = new SocketIOServer(server);
@@ -98,6 +103,16 @@ if (googleConfigured) {
 // ---------------------------------------------------------------------------
 function ensureAuth(req, res, next) {
   if (req.isAuthenticated?.()) return next();
+  // Dev mode: inject a fake user so local testing needs no Google login.
+  if (devNoAuth) {
+    req.user = req.user || {
+      id: 'dev-user',
+      name: 'Dev Tester',
+      email: 'dev@localhost',
+      photo: null,
+    };
+    return next();
+  }
   // Remember where the user was headed (e.g. /play?code=ABCD from a QR scan)
   // so we can send them back there right after they log in.
   req.session.returnTo = req.originalUrl;
@@ -135,6 +150,7 @@ app.get('/api/me', (req, res) => {
   res.json({
     authenticated: Boolean(req.user),
     googleConfigured,
+    dev: devNoAuth,
     user: req.user ?? null,
   });
 });

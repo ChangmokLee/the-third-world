@@ -6,6 +6,8 @@ import {
   submitNightAction,
   solvePuzzle,
   puzzleProgress,
+  allPuzzlesSolved,
+  playerSolvedAll,
   resolveNight,
   startDay,
   submitVote,
@@ -16,6 +18,9 @@ import {
   checkWin,
   nightActionFor,
 } from './game.js';
+
+// Dev tools (bot players, etc.) are only available outside production.
+const DEV_TOOLS = process.env.NODE_ENV !== 'production' && process.env.DEV_NO_AUTH !== '0';
 
 function buildJoinUrl(socket, code) {
   const base =
@@ -117,6 +122,7 @@ export function registerSocketHandlers(io, rooms) {
     startDay(room);
     io.to(room.code).emit('game:phase', { phase: 'day' });
     broadcastDay(room, report);
+    scheduleBots(room, playBotsDay);
   }
 
   // -------------------------------------------------------------------------
@@ -173,6 +179,7 @@ export function registerSocketHandlers(io, rooms) {
       startNight(room);
       io.to(room.code).emit('game:phase', { phase: 'night' });
       broadcastNight(room);
+      scheduleBots(room, playBotsNight);
     }, 4500);
   }
 
@@ -188,6 +195,66 @@ export function registerSocketHandlers(io, rooms) {
         alive: p.alive,
       })),
     });
+  }
+
+  // -------------------------------------------------------------------------
+  // DEV: bot auto-play. Bots fill empty seats so one developer can run a whole
+  // game alone. They confirm roles, solve their puzzles and pick random legal
+  // targets, leaving the human(s) free to play their own part.
+  // -------------------------------------------------------------------------
+  function roomHasBots(room) {
+    return [...room.players.values()].some((p) => p.isBot);
+  }
+
+  function randomLivingTarget(room, selfId) {
+    const others = [...room.players.values()].filter(
+      (p) => p.alive && p.id !== selfId
+    );
+    if (!others.length) return null;
+    return others[Math.floor(Math.random() * others.length)].id;
+  }
+
+  // Each bot solves all of its own night puzzles and submits a random action.
+  function playBotsNight(room) {
+    if (room.phase !== 'night' || !room.night) return;
+    for (const bot of room.players.values()) {
+      if (!bot.isBot || !bot.alive) continue;
+      for (const pz of room.night.puzzles) {
+        if (!playerSolvedAll(room, bot.id)) {
+          solvePuzzle(room, bot.id, pz.id, pz.a);
+        }
+      }
+      const type = nightActionFor(bot.charClass?.id);
+      if (type) {
+        const target = randomLivingTarget(room, bot.id);
+        if (target) submitNightAction(room, bot.id, target);
+      }
+    }
+    broadcastPuzzleProgress(room);
+    if (allPuzzlesSolved(room)) {
+      io.to(room.code).emit('game:phase', { phase: 'nightResolving' });
+      endNight(room);
+    }
+  }
+
+  // Each bot casts a random vote during the day.
+  function playBotsDay(room) {
+    if (room.phase !== 'day') return;
+    for (const bot of room.players.values()) {
+      if (!bot.isBot || !bot.alive) continue;
+      const target = randomLivingTarget(room, bot.id);
+      submitVote(room, bot.id, target || 'skip');
+    }
+    broadcastVoteUpdate(room);
+    if (allVoted(room)) endDay(room);
+  }
+
+  // Schedule bot play a moment after a phase broadcast so ordering stays clean.
+  function scheduleBots(room, fn) {
+    if (!DEV_TOOLS || !roomHasBots(room)) return;
+    setTimeout(() => {
+      if (rooms.getRoom(room.code)) fn(room);
+    }, 900);
   }
 
   io.on('connection', (socket) => {
@@ -208,7 +275,7 @@ export function registerSocketHandlers(io, rooms) {
       } catch {
         qr = null;
       }
-      socket.emit('host:created', { ...rooms.publicState(room), joinUrl, qr });
+      socket.emit('host:created', { ...rooms.publicState(room), joinUrl, qr, dev: DEV_TOOLS });
     });
 
     // ----------------------------------------------------------------------
@@ -230,6 +297,19 @@ export function registerSocketHandlers(io, rooms) {
     });
 
     // ----------------------------------------------------------------------
+    // DEV: host adds fake bot players to fill the room for solo testing
+    // ----------------------------------------------------------------------
+    socket.on('host:addBots', ({ count = 1 } = {}) => {
+      if (!DEV_TOOLS) return;
+      const room = rooms.getRoom(socket.data.roomCode);
+      if (!room || room.hostSocketId !== socket.id) return;
+      if (room.phase !== 'lobby') return;
+      const n = Math.max(1, Math.min(7, Number(count) || 1));
+      for (let i = 0; i < n; i++) rooms.addBot(room);
+      io.to(room.code).emit('room:update', rooms.publicState(room));
+    });
+
+    // ----------------------------------------------------------------------
     // HOST starts the game → assign roles, reveal privately, gate on roleAck
     // ----------------------------------------------------------------------
     socket.on('host:start', () => {
@@ -241,6 +321,8 @@ export function registerSocketHandlers(io, rooms) {
       room.day = 0;
       room.winner = null;
       for (const p of room.players.values()) p.roleAck = false;
+      // Dev bots confirm their role automatically.
+      for (const p of room.players.values()) if (p.isBot) p.roleAck = true;
 
       for (const p of room.players.values()) {
         io.to(p.id).emit('game:role', { role: p.role, charClass: p.charClass });
@@ -248,7 +330,7 @@ export function registerSocketHandlers(io, rooms) {
       io.to(room.code).emit('game:phase', { phase: 'role' });
       io.to(room.code).emit('game:roleCounts', rooms.roleCounts(room));
       io.to(room.code).emit('game:roleAcks', {
-        confirmed: 0,
+        confirmed: [...room.players.values()].filter((p) => p.roleAck).length,
         total: room.players.size,
       });
       io.to(room.code).emit('room:update', rooms.publicState(room));
@@ -280,6 +362,7 @@ export function registerSocketHandlers(io, rooms) {
       startNight(room);
       io.to(room.code).emit('game:phase', { phase: 'night' });
       broadcastNight(room);
+      scheduleBots(room, playBotsNight);
     });
 
     // ----------------------------------------------------------------------
